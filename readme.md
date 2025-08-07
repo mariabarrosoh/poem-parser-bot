@@ -98,7 +98,7 @@ python app.py
 The API will be available at:
 http://localhost:8080/api/parse
 
-You can test the API via Swagger UI.
+You can test the API using **Swagger UI** or the included **Python script**.
 
 ### 🔍 Swagger UI
 Access the documentation at: http://localhost:8080/apidocs
@@ -106,6 +106,16 @@ Access the documentation at: http://localhost:8080/apidocs
 You can upload an image using the file input.
 
 Review the result and download HTML/Markdown content.
+
+###  Python Script
+Edit the image paths in the test_app.py script to specify which images to process, then run:
+
+bash
+Copiar
+Editar
+```
+python test_app.py
+```
 
 
 ## 📁 Project Structure

@@ -3,6 +3,7 @@ import os
 import io
 import uuid
 import shutil
+import imghdr
 from dotenv import load_dotenv
 from telegram import Update, BotCommand
 from telegram.ext import (
@@ -22,6 +23,7 @@ if not DATA_DIR:
     raise RuntimeError("DATA_DIR environment variable is not set.")
 
 MAX_IMAGES = int(os.getenv("MAX_IMAGES", "5"))
+
 
 # Dictionary to manage user sessions (user_id -> request_id)
 user_sessions = {}
@@ -141,7 +143,8 @@ async def reset(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def done(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
-    /done command handler. Processes all uploaded images and sends back an HTML file.
+    Handler for the /done command.
+    Processes all uploaded images for the user and sends back an HTML file with the poem.
     """
     user_id = update.effective_user.id
     logger.info(f"{user_id} | /done requested")
@@ -149,25 +152,18 @@ async def done(update: Update, context: ContextTypes.DEFAULT_TYPE):
     request_id = user_sessions.get(user_id)
     input_dir = get_user_input_dir(user_id)
 
-    # No sesión iniciada
+    # No active session or folder does not exist
     if not input_dir or not os.path.exists(input_dir):
         logger.warning(f"{user_id} | No session or input directory found.")
         await update.message.reply_text("You haven't sent any images yet.")
         return
 
-    image_paths = sorted([
-        os.path.join(input_dir, f)
-        for f in os.listdir(input_dir)
-        if f.lower().endswith((".jpg", ".jpeg", ".png"))
-    ])
+    # Get all files (all extensions) sorted by name - assuming all valid images saved with proper extension
+    image_paths = sorted([os.path.join(input_dir, f) for f in os.listdir(input_dir)])
 
     if not image_paths:
         logger.warning(f"{user_id} | {request_id} | No valid images found.")
         await update.message.reply_text("No valid images found. Accepted formats: JPG, JPEG, PNG.")
-        return
-
-    if len(image_paths) >= MAX_IMAGES:
-        await update.message.reply_text(f"You've reached the maximum of {MAX_IMAGES} images. Use /done to process them.")
         return
 
     try:
@@ -179,10 +175,12 @@ async def done(update: Update, context: ContextTypes.DEFAULT_TYPE):
             logger.warning(f"{user_id} | {request_id} | No valid HTML extracted from images.")
             await update.message.reply_text("The images you sent do not contain a valid poem or could not be processed.")
             return
+
         logger.info(f"{user_id} | {request_id} | HTML extracted successfully")
 
         display_title = title if title else "(Unknown Poem)"
 
+        # Handle different cases of missing title/text
         if not title and not poem_text:
             logger.warning(f"{user_id} | {request_id} | Missing both title and poem text")
             await update.message.reply_text("Could not extract poem title or text.", parse_mode="Markdown")
@@ -194,15 +192,17 @@ async def done(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await update.message.reply_text(poem_text, parse_mode="Markdown")
         elif not poem_text:
             logger.warning(f"{user_id} | {request_id} | Missing poem text")
-            await update.message.reply_text(f"Poem *{display_title}* processed, but no text could be extracted.", parse_mode="Markdown")
+            await update.message.reply_text(
+                f"Poem *{display_title}* processed, but no text could be extracted.", parse_mode="Markdown"
+            )
         else:
             logger.info(f"{user_id} | {request_id} | Poem title and text extracted successfully")
             await update.message.reply_text(f"Poem *{display_title}* processed successfully.", parse_mode="Markdown")
             await update.message.reply_text(poem_text, parse_mode="Markdown")
 
-        # Send HTML
+        # Send the HTML file as a document
         html_bytes_io = io.BytesIO(poem_html.encode("utf-8"))
-        html_bytes_io.name = f"{(request_id or 'output')}.html"
+        html_bytes_io.name = f"{request_id or 'output'}.html"
         await update.message.reply_document(document=html_bytes_io)
         logger.info(f"{user_id} | {request_id} | HTML file sent to user")
 
@@ -216,31 +216,60 @@ async def done(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
-    Handles incoming image uploads and saves them to the user's session folder.
-    Ensures images are saved in order of arrival.
+    Handles incoming image uploads.
+    Saves images in user session folder, preserving the order.
+    Enforces max number of images.
     """
     user_id = update.effective_user.id
     request_id = user_sessions.get(user_id)
     input_dir = get_user_input_dir(user_id)
 
+    # Create session if it doesn't exist
     if not input_dir:
         logger.info(f"{user_id} | No session found. Creating new session.")
         request_id = create_session(user_id)
         input_dir = get_user_input_dir(user_id)
 
-    # Contar cuántas imágenes hay ya
-    existing_files = [
+    # List existing image files with valid extensions
+    image_paths = [
         f for f in os.listdir(input_dir)
         if f.lower().endswith((".jpg", ".jpeg", ".png"))
     ]
-    image_index = len(existing_files) + 1
 
-    # Obtener imagen y guardarla con orden numérico
+    # If user already exceeded max images, discard new image and notify
+    if len(image_paths) >= MAX_IMAGES:
+        await update.message.reply_text(
+            f"You've reached the maximum of {MAX_IMAGES} images. This image was not saved. Please use /done to process the rest."
+        )
+        return
+
+    image_index = len(image_paths) + 1
+
     photo_file = await update.message.photo[-1].get_file()
     logger.info(f"{user_id} | {request_id} | Image received")
 
-    file_path = os.path.join(input_dir, f"{image_index:03d}.jpg")
-    await photo_file.download_to_drive(file_path)
+    # Download image temporarily
+    temp_path = os.path.join(input_dir, f"{image_index:03d}.tmp")
+    await photo_file.download_to_drive(temp_path)
+
+    # Detect actual image extension
+    detected_type = imghdr.what(temp_path)
+    if detected_type not in ['jpeg', 'png']:
+        logger.warning(f"{user_id} | {request_id} | Unsupported image type: {detected_type}")
+        os.remove(temp_path)
+        await update.message.reply_text("Unsupported image format. Please send JPG or PNG images.")
+        return
+
+    # Map detected type to correct extension
+    extension = 'jpg' if detected_type == 'jpeg' else 'png'
+    final_path = os.path.join(input_dir, f"{image_index:03d}.{extension}")
+
+    os.rename(temp_path, final_path)
+
+    # Notify user if this image hits the max count exactly
+    if image_index == MAX_IMAGES:
+        await update.message.reply_text(f"You've reached the maximum of {MAX_IMAGES} images. Use /done to process them.")
+        return
 
     await update.message.reply_text("Image received. Use /done when finished.")
 

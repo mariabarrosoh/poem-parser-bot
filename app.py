@@ -1,5 +1,6 @@
 import os
 import uuid
+from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 from werkzeug.utils import secure_filename
 from flask_cors import CORS
@@ -8,13 +9,20 @@ from flasgger import Swagger, swag_from
 from process import process
 from utils.logging_config import configure_logger
 
+load_dotenv()
+
+# Load environment variables
+DATA_DIR = os.getenv("DATA_DIR")
+if not DATA_DIR:
+    raise RuntimeError("DATA_DIR environment variable is not set.")
+
+MAX_IMAGES = int(os.getenv("MAX_IMAGES", "5"))
+
 # --- Configuration ---
-UPLOAD_FOLDER = "uploads"
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 
 # --- App Setup ---
 app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 CORS(app)  # Enable CORS
 Swagger(app)  # Enable Swagger UI at /apidocs
 logger = configure_logger("PoemParserAPI")
@@ -73,16 +81,20 @@ def parse_poem():
 
     images = request.files.getlist("images")
     if not images or not all(allowed_file(img.filename) for img in images):
-        logger.warning(f"{request_id} | Invalid or missing image files")
-        return jsonify({"error": "Invalid or missing image files"}), 400
+        logger.warning(f"{request_id} | Invalid or missing image files.")
+        return jsonify({"error": "Invalid or missing image files. Accepted formats: JPG, JPEG, PNG."}), 400
 
     image_paths = []
-    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+    os.makedirs(DATA_DIR, exist_ok=True)
 
     try:
+        if len(images) >= MAX_IMAGES:
+            logger.warning(f"{request_id} | Maximum number of images exceeded: {len(images)} provided, limit is {MAX_IMAGES}.")
+            return jsonify({f"error": f"Maximum number of images exceeded: {len(images)} provided, limit is {MAX_IMAGES}."}), 400
+
         for img in images:
             filename = secure_filename(img.filename)
-            save_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{request_id}_{filename}")
+            save_path = os.path.join(DATA_DIR, f"{request_id}_{filename}")
             img.save(save_path)
             image_paths.append(save_path)
 
