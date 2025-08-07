@@ -1,7 +1,7 @@
 import os
 import uuid
 from dotenv import load_dotenv
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from werkzeug.utils import secure_filename
 from flask_cors import CORS
 from flasgger import Swagger, swag_from
@@ -37,6 +37,10 @@ def generate_request_id():
     return uuid.uuid4().hex[:16]
 
 # --- Routes ---
+@app.route('/')
+def home():
+    return "", 302, {"Location": "/apidocs"}
+
 @app.route('/api/parse', methods=['POST'])
 @swag_from({
     'tags': ['Poem Parsing'],
@@ -111,8 +115,8 @@ def parse_poem():
         })
 
     except Exception as e:
-        logger.exception(f"{request_id} | Exception during processing")
-        return jsonify({"error": "Internal server error", "details": str(e)}), 500
+        logger.exception(f"{request_id} | Exception during processing: {e}")
+        return jsonify({"error": "Internal server error. Please try again later."}), 500
 
     finally:
         for path in image_paths:
@@ -121,30 +125,47 @@ def parse_poem():
             except Exception as e:
                 logger.warning(f"{request_id} | Failed to delete {path}: {e}")
 
+# --- Health Check ---
 @app.route('/ping', methods=['GET'])
 @swag_from({
     'tags': ['Health Check'],
     'responses': {
         200: {
-            'description': 'API is running',
+            'description': 'API is healthy',
             'examples': {
                 'application/json': {
-                    'status': 'ok',
-                    'message': 'Poem Parser API is up and running!'
+                    'status': 'ok'
                 }
             }
         }
     }
 })
 def ping():
-    """
-    Simple health check endpoint.
-    ---
-    """
-    return jsonify({
-        "status": "ok",
-        "message": "Poem Parser API is up and running!"
-    }), 200
+    """Health check endpoint"""
+    return jsonify(status="ok"), 200
+
+# --- Error Handlers ---
+@app.errorhandler(404)
+def not_found(error):
+    """Handle 404 Not Found errors"""
+    if request.accept_mimetypes.accept_json:
+        return jsonify(error="Not Found"), 404
+    return render_template("404.html"), 404
+
+@app.errorhandler(500)
+def internal_server_error(error):
+    """Handle 500 Internal Server Error"""
+    if request.accept_mimetypes.accept_json:
+        return jsonify(error="Internal Server Error"), 500
+    return render_template("500.html"), 500
+
+@app.errorhandler(503)
+def service_unavailable(error):
+    """Handle 503 Service Unavailable"""
+    if request.accept_mimetypes.accept_json:
+        return jsonify(
+            error="Service Unavailable"), 503
+    return render_template("503.html"), 503
 
 # --- Entry Point ---
 if __name__ == '__main__':

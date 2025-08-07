@@ -117,6 +117,13 @@ Editar
 python test_app.py
 ```
 
+## API Deployment
+
+The Poem Parser API is now live and accessible at Render: [https://poem-parser.onrender.com/](https://poem-parser.onrender.com/)
+
+You can use this endpoint to parse poem images by sending a POST request to: https://poem-parser.onrender.com/api/parse
+
+
 
 ## 📁 Project Structure
 
@@ -136,6 +143,8 @@ poem-html-bot/
 │   └── title_md_extractor.txt
 .txt
 ├── data/                 # Temporary user image and output files
+├── templates/            # API templates
+├── Procfile/             # Procfile for Render deployment
 ├── .env                  # Secrets (not committed)
 ├── .gitignore
 └── requirements.txt
