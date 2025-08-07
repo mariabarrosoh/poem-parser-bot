@@ -76,19 +76,6 @@ Change the variables in the main program and run it to test the functionality.
 python process.py
 ```
 
-
-## ☁️ Deploying to Railway
-1. Go to Railway and create an account.
-2. Click "New Project" → "Deploy from GitHub Repo".
-3. Connect this repository.
-4. Add your .env variables from above in the Railway dashboard.
-5. In the Settings > Start Command, set:
-
-```bash
-python main.py
-```
-6. Click "Deploy". Your Telegram bot is now live!
-
 ## 📁 Project Structure
 
 ```bash
