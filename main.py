@@ -3,7 +3,6 @@ import os
 import io
 import uuid
 import shutil
-import asyncio
 from dotenv import load_dotenv
 from telegram import Update, BotCommand
 from telegram.ext import (

@@ -1,31 +1,30 @@
-# 📝 Poem Parser Extractor Telegram Bot
+# 📝 Poem Parser Bot & API
 
-This Telegram bot allows users to send one or more poem images and receive a clean, validated HTML file of the poem, including its title and text.
+This project allows you to extract structured poem information (title, clean HTML, and Markdown) from images. It supports interaction through:
+
+- ✅ A **Telegram bot**.
+- 🌐 A **REST API** with Swagger documentation.
 
 
 ## 🚀 Features
 
-- 📷 Upload one or more images (in order).
-- 🧠 LLM extracts a clean HTML version of the poem.
-- 📄 Sends HTML file directly to the user.
-- 🔁 `/reset` to discard current session.
-- ✅ `/done` to process and receive the extracted data and HTML file.
+### Telegram Bot
+- 📷 Send one or more poem images.
+- 🧠 Uses LLMs to extract a clean HTML version of the poem.
+- 📄 Returns the HTML file and Markdown text.
+- ✅ Use `/done` to process images.
+- 🔁 Use `/reset` to discard current session.
 - 🧹 Cleans up user files after each session.
 
+### REST API
+- 📤 `/api/parse` endpoint accepts multiple image uploads.
+- 📄 Returns poem title, HTML, and Markdown.
+- 🔐 Uses the same credentials as the bot.
+- ⚙️ Swagger documentation available at `/apidocs`.
+- 🧪 Can be tested using `test_app.py`.
 
-## 🔑 How to Get the Required API Tokens
-### ✅ Telegram Bot Token
-1. Go to @BotFather in Telegram.
-2. Run the command /newbot.
-3. Follow the prompts:
-    - Choose a name (PoemParserBot)
-    - Choose a username (must end in bot, e.g., PoemParserBot).
 
-4. You'll receive a token like this:
-    ```makefile
-    123456789:ABCDefGhIJKlmNoPQRstuVWXyz123456789
-    ```
-5. Copy it and set it as TELEGRAM_BOT_TOKEN in .env.
+## 🔑 Required API Tokens
 
 ### ✅ Groq API Key
 1. Visit https://console.groq.com/keys.
@@ -33,7 +32,23 @@ This Telegram bot allows users to send one or more poem images and receive a cle
 3. Click "Create API Key".
 4. Copy the token (starts with gsk_...) and paste it into .env as GROQ_API_KEY.
 
+```env
+GROQ_API_KEY=your_groq_api_key
+MODEL_NAME=meta-llama/llama-4-scout-17b-16e-instruct  # Or your preferred model
+```
+
 💡 You can use any of the supported models.
+
+### ✅ Telegram Bot Token (Only for Telegram Bot)
+1. Open [@BotFather](https://t.me/BotFather) on Telegram.
+2. Run the `/newbot` command and follow the steps.
+3. Copy the token you receive.
+4. Add it to your `.env` as:
+
+```env
+TELEGRAM_BOT_TOKEN=your_telegram_bot_token
+```
+
 
 ## 🛠️ Local Setup
 
@@ -62,26 +77,45 @@ DATA_DIR=data
 MAX_IMAGES=5
 ```
 
-### 4. Run the Bot
+## 🤖 Run the Telegram Bot
 ```bash
 python main.py
 ```
 
 Open Telegram and talk to your bot. Try sending 1–3 poem images, then use /done to receive the HTML.
 
-### 5. Run without Telegram
-Change the variables in the main program and run it to test the functionality.
-
-```bash
-python process.py
+## 🌐 Run the API
+Start the Flask app with Gunicorn:
 ```
+gunicorn app:app --bind 0.0.0.0:8080
+```
+
+Or for development/testing:
+```
+python app.py
+```
+
+The API will be available at:
+http://localhost:8080/api/parse
+
+You can test the API via Swagger UI.
+
+### 🔍 Swagger UI
+Access the documentation at: http://localhost:8080/apidocs
+
+You can upload an image using the file input.
+
+Review the result and download HTML/Markdown content.
+
 
 ## 📁 Project Structure
 
 ```bash
 poem-html-bot/
-├── main.py               # Telegram handlers and entrypoint
-├── process.py            # Handles image → HTML pipeline
+├── main.py               # Telegram bot entry point
+├── app.py                # Flask API entry point
+├── process.py            # Core processing logic
+├── test_app.py           # Script to test the API
 ├── utils/
 │   ├── logging_config.py # Logs configuration
 │   ├── llm_utils.py      # LLM interaction logic
@@ -97,16 +131,10 @@ poem-html-bot/
 └── requirements.txt
 ```
 
-## 🧹 Cleanup Behavior
-Each user gets a separate data/{request_id}/ folder.
-
-This is auto-deleted after /done or /reset.
-
-The bot avoids reusing old images if the user restarts a session.
 
 ## ❌ Limitations
-Only .jpg, .jpeg, and .png formats are supported.
-Large images or too many images (MAX 10) may exceed model token limits.
+- Only .jpg, .jpeg, and .png formats are supported.
+- Large images or too many images may exceed model token limits.
 
 ## 📄 License
 MIT License. See the LICENSE file.
