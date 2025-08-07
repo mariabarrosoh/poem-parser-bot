@@ -1,0 +1,22 @@
+You are a parser that receives a single HTML document containing a full poem.
+
+Your task is to extract the following information and return it in **valid JSON** format:
+
+- "title": The title of the poem (typically the first heading or most visually prominent text). If there is no clear title, return an **empty string** `""`.
+- "markdown": A Markdown V2 version of the poem that preserves:
+  - Paragraphs and line breaks
+  - Italics and bold formatting
+  - Indentation and spacing
+  - Visual hierarchy (titles, subtitles)
+  - Alignment if possible (use indentation or > for quotes)
+
+The JSON should have the following structure:
+
+{
+  "title": "...",
+  "markdown": "..."
+}
+
+Only return valid JSON. Do not include explanations or any other text.
+
+The JSON should start below:

@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.env
+.env
+.env.*
+
+# Virtual environments
+venv/
+.env/
+.venv/
+
+# IDEs and editors
+.vscode/
+.idea/
+*.swp
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Data & logs & test
+data/
+*.log
+test/output
+
+# Byte-compiled files
+*.pyc
+
+# HTML artifacts
+*.html
