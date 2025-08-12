@@ -78,7 +78,7 @@ DATA_DIR=data                                           # Directory for temporar
 DB_DIR=db                                               # Directory where the poem database is stored
 TEMP_DIR=temp                                           # Temporary directory for intermediate files
 MAX_IMAGES=5                                            # Maximum number of images allowed per upload
-ENV=local                                               # Environment mode: 'local' or 'test' for local testing, use other values for production
+POEM_DOMAIN=http://localhost:8080                       # Poem Domain for local, https://poem-parser.onrender.com/ for production
 ALLOWED_USER_ID=your_user_telegram_id                   # Comma-separated Telegram user IDs authorized to use the app (e.g., 123456789,987654321)
 ```
 
@@ -106,7 +106,7 @@ http://localhost:8080/
 
 ## API Deployment
 
-The Poem Parser API is now live and accessible at Render: [https://poem-parser-api.onrender.com/](https://poem-parser-api.onrender.com/)
+The Poem Parser API is now live and accessible at Render: [https://poem-parser.onrender.com/](https://poem-parser.onrender.com/)
 
 You can see the poems by sending a GET request to: https://poem-parser.onrender.com/
 

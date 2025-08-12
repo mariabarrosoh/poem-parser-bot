@@ -38,14 +38,10 @@ logger = configure_logger("PoemParserBot")
 TEMP_DIR: str = os.getenv("TEMP_DIR")
 MAX_IMAGES: int = int(os.getenv("MAX_IMAGES"))
 ALLOWED_USER_ID: str = os.getenv("ALLOWED_USER_ID")
+POEM_DOMAIN: str = os.getenv("POEM_DOMAIN")
 
-if not ALLOWED_USER_ID or not TEMP_DIR or not MAX_IMAGES:
-    raise RuntimeError("ALLOWED_USER_ID, TEMP_DIR or MAX_IMAGES environment variables are not set.")
-
-# Environment flags
-ENV: str = os.getenv("ENV")
-LOCALHOST: bool = ENV == "local"
-POEM_DOMAIN: str = "http://localhost:8080" if LOCALHOST else "https://poem-parser.onrender.com/"
+if not POEM_DOMAIN or not ALLOWED_USER_ID or not TEMP_DIR or not MAX_IMAGES:
+    raise RuntimeError("POEM_DOMAIN, ALLOWED_USER_ID, TEMP_DIR or MAX_IMAGES environment variables are not set.")
 
 # --- In-memory session states ---
 user_sessions: dict[int, str] = {}  # Maps user_id -> request_id

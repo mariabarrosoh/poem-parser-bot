@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ author_data.author }} — Poems</title>
+  <style>
+    body {
+      background-color: #f7f7f7;
+      font-family: Georgia, serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    .poem-section {
+      max-width: 800px;
+      margin: 2em auto;
+      padding: 0 1em;
+      color: #333;
+    }
+
+    .poem-section h2 {
+      font-size: 1.5rem;
+      font-weight: normal;
+      margin-bottom: 0.5em;
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 0.2em;
+    }
+
+    .poem-list {
+      list-style: disc;
+      padding-left: 1.5em;
+      margin: 0;
+    }
+
+    .poem-list li {
+      margin-bottom: 0.5em;
+    }
+
+    .poem-list a {
+      color: #333;
+      text-decoration: none;
+      border-bottom: 1px dotted #aaa;
+    }
+
+    .poem-list a:hover {
+      color: #000;
+      border-bottom-color: #000;
+    }
+
+    .poem-date {
+      font-style: italic;
+      font-size: 0.9rem;
+      color: #777;
+      margin-left: 0.5em;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="poem-section">
+    <h2>{{ author_data.author }}</h2>
+    <ul class="poem-list">
+      {% for poem_slug, poem_info in author_data.poems|dictsort %}
+        <li>
+          <a href="/{{ author_slug }}/{{ poem_slug }}">
+            {{ poem_info.title }}
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+
+</body>
+</html>
