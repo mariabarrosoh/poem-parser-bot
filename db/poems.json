@@ -1,0 +1,28 @@
+{
+  "1919608647": {
+    "jorge-luis-borges": {
+      "author": "Jorge Luis Borges",
+      "poems": {
+        "junin": {
+          "title": "JUNÍN",
+          "poem": "Soy, pero soy también el otro, el muerto,\nel otro de mi sangre y de mi nombre;\nsoy un vago señor y soy el hombre\nque detuvo las lanzas del desierto.\nVuelvo a Junín, donde no estuve nunca,\na tu Junín, abuelo Borges. ¿Me oyes,\nsombra o ceniza última, o desoyes\nent tu sueño de bronce esta voz trunca?\nAcaso buscas por mis vanos ojos\nel épico Junín de tus soldados,\nel árbol que plantaste, los cercados\ny en el confín la tribu y los despojos.\nTe imagino severo, un poco triste.\nQuién me dirá cómo eras y quién fuiste.",
+          "request_id": "6011a28a748c411c",
+          "upload_at": "2025-08-12T11:49:18",
+          "poem_url": "jorge-luis-borges/junin"
+        }
+      }
+    },
+    "melvin-dixon": {
+      "author": "Melvin Dixon",
+      "poems": {
+        "heartbeats": {
+          "title": "Heartbeats",
+          "poem": "Work out. Ten laps.\nChin ups. Look good.\n\nSteam room. Dress warm.\nCall home. Fresh air.\n\nEat right. Rest well.\nSweetheart. Safe sex.\n\nSore throat. Long flu.\nHard nodes. Beware.\n\nTest blood. Count cells.\nReds thin. Whites low.\n\nDress warm. Eat well.\nShort breath. Fatigue.\n\nNight sweats. Dry cough.\nLoose stools. Weight loss.\n\nGet mad. Fight back.\nCall home. Rest well.",
+          "request_id": "31e39bfb3c0b4734",
+          "upload_at": "2025-08-12T12:35:35",
+          "poem_url": "melvin-dixon/heartbeats"
+        }
+      }
+    }
+  }
+}

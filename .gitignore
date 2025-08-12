@@ -22,10 +22,9 @@ venv/
 .DS_Store
 Thumbs.db
 
-# Data & logs & test
-data/
+# Tmp data & logs & test
+temp/
 *.log
-test/output
 
 # Byte-compiled files
 *.pyc

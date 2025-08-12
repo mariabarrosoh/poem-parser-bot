@@ -1,172 +1,253 @@
+"""
+Poem Management Flask Application
+
+Provides web views and API endpoints to save, view, and delete poems by author and title.
+"""
+
 import os
-import uuid
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify, render_template
-from werkzeug.utils import secure_filename
 from flask_cors import CORS
-from flasgger import Swagger, swag_from
 
-from process import process
+from utils.db_utils import (
+    save_to_db,
+    get_poems_by_user,
+    delete_poem_db,
+    delete_author_db,
+    delete_user_db,
+)
+from utils.utils import markdown_to_html
 from utils.logging_config import configure_logger
 
+# --- Load Environment Variables ---
 load_dotenv()
+DB_DIR = os.getenv("DB_DIR")
+ALLOWED_USER_ID = os.getenv("ALLOWED_USER_ID")
 
-# Load environment variables
-DATA_DIR = os.getenv("DATA_DIR")
-if not DATA_DIR:
-    raise RuntimeError("DATA_DIR environment variable is not set.")
+if not DB_DIR or not ALLOWED_USER_ID:
+    raise RuntimeError("DB_DIR or ALLOWED_USER_ID environment variable is not set.")
 
-MAX_IMAGES = int(os.getenv("MAX_IMAGES", "5"))
+ALLOWED_USERS = {user_id.strip() for user_id in ALLOWED_USER_ID.split(",")}
 
-# --- Configuration ---
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
-
-# --- App Setup ---
+# --- Flask App Initialization ---
 app = Flask(__name__)
-CORS(app)  # Enable CORS
-Swagger(app)  # Enable Swagger UI at /apidocs
-logger = configure_logger("PoemParserAPI")
+CORS(app)  # Enable Cross-Origin Resource Sharing
+logger = configure_logger("PoemInterface")
 
-# --- Utils ---
-def allowed_file(filename: str):
-    """Check if the file has an allowed image extension."""
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-def generate_request_id():
-    """Generate a short unique ID for each request."""
-    return uuid.uuid4().hex[:16]
-
-# --- Routes ---
-@app.route('/')
-def home():
-    return "", 302, {"Location": "/apidocs"}
-
-@app.route('/api/parse', methods=['POST'])
-@swag_from({
-    'tags': ['Poem Parsing'],
-    'consumes': ['multipart/form-data'],
-    'parameters': [
-        {
-            'name': 'images',
-            'in': 'formData',
-            'type': 'file',
-            'required': True,
-            'description': 'One or more image files',
-            'collectionFormat': 'multi'
-        }
-    ],
-    'responses': {
-        200: {
-            'description': 'Poem extracted successfully',
-            'examples': {
-                'application/json': {
-                    "request_id": "abc123",
-                    "title": "My Poem",
-                    "html": "<html>...</html>",
-                    "markdown": "# Poem text",
-                }
-            }
-        },
-        400: {'description': 'Invalid request (missing or wrong files)'},
-        500: {'description': 'Internal server error'}
-    }
-})
-def parse_poem():
+# --- Helper Functions ---
+def not_found_poem():
     """
-    Endpoint to extract poem content from uploaded image(s).
-    ---
+    Render a default poem page when no poem or author is found.
     """
-    request_id = generate_request_id()
-    logger.info(f"{request_id} | Received parse request")
+    author = "El Programador."
+    title = "No, no, no"
+    poem = (
+        "O el parámetro está mal</br>"
+        "o el poema no lo tengo </br>"
+        "o la web no funciona.</br>"
+    )
+    return render_template("poem.html", author=author, title=title, poem=poem)
 
-    if 'images' not in request.files:
-        logger.warning(f"{request_id} | No 'images' field in request")
-        return jsonify({"error": "No images part in the request"}), 400
 
-    images = request.files.getlist("images")
-    if not images or not all(allowed_file(img.filename) for img in images):
-        logger.warning(f"{request_id} | Invalid or missing image files.")
-        return jsonify({"error": "Invalid or missing image files. Accepted formats: JPG, JPEG, PNG."}), 400
+def is_authorized(user_id: str) -> bool:
+    """
+    Check if the user_id is authorized.
+    """
+    return user_id in ALLOWED_USERS
 
-    image_paths = []
-    os.makedirs(DATA_DIR, exist_ok=True)
 
-    try:
-        if len(images) >= MAX_IMAGES:
-            logger.warning(f"{request_id} | Maximum number of images exceeded: {len(images)} provided, limit is {MAX_IMAGES}.")
-            return jsonify({f"error": f"Maximum number of images exceeded: {len(images)} provided, limit is {MAX_IMAGES}."}), 400
+def validate_json_fields(json_data: dict, required_fields: list):
+    """
+    Validate that the JSON data contains all required fields.
+    Returns (True, "") if valid; otherwise (False, error message).
+    """
+    missing = [field for field in required_fields if field not in json_data]
+    if missing:
+        return False, f"Missing required fields: {', '.join(missing)}"
+    return True, ""
 
-        for img in images:
-            filename = secure_filename(img.filename)
-            save_path = os.path.join(DATA_DIR, f"{request_id}_{filename}")
-            img.save(save_path)
-            image_paths.append(save_path)
 
-        title, html, markdown = process(image_paths, request_id)
+# --- Web View Routes ---
+@app.route("/", strict_slashes=False)
+def view_poems():
+    """
+    View all poems by the authorized user.
+    """
+    user_poems = get_poems_by_user(ALLOWED_USER_ID)
+    return render_template("poems_list.html", poems_data=user_poems)
 
-        if not any([title, html, markdown]):
-            return jsonify({"error": "No poem extracted from images."}), 400
 
-        return jsonify({
-            "request_id": request_id,
-            "title": title,
-            "markdown": markdown,
-            "html": html
-        })
+@app.route("/<author_key>", strict_slashes=False)
+def view_author_poems(author_key):
+    """
+    View all poems by a specific author.
+    """
+    user_poems = get_poems_by_user(ALLOWED_USER_ID)
+    if author_key in user_poems:
+        return render_template(
+            "poems_author_list.html",
+            author_slug=author_key,
+            author_data=user_poems[author_key],
+        )
+    return not_found_poem()
 
-    except Exception as e:
-        logger.exception(f"{request_id} | Exception during processing: {e}")
-        return jsonify({"error": "Internal server error. Please try again later."}), 500
 
-    finally:
-        for path in image_paths:
-            try:
-                os.remove(path)
-            except Exception as e:
-                logger.warning(f"{request_id} | Failed to delete {path}: {e}")
+@app.route("/<author_key>/<title_key>", strict_slashes=False)
+def view_poem(author_key, title_key):
+    """
+    View a specific poem by author and title.
+    """
+    user_poems = get_poems_by_user(ALLOWED_USER_ID)
+    if author_key in user_poems:
+        author = user_poems[author_key]["author"]
+        poems = user_poems[author_key]["poems"]
+        if title_key in poems:
+            title = poems[title_key]["title"]
+            poem_html = markdown_to_html(poems[title_key]["poem"])
+            return render_template("poem.html", author=author, title=title, poem=poem_html)
+    return not_found_poem()
 
-# --- Health Check ---
-@app.route('/ping', methods=['GET'])
-@swag_from({
-    'tags': ['Health Check'],
-    'responses': {
-        200: {
-            'description': 'API is healthy',
-            'examples': {
-                'application/json': {
-                    'status': 'ok'
-                }
-            }
-        }
-    }
-})
-def ping():
-    """Health check endpoint"""
-    return jsonify(status="ok"), 200
 
-# --- Error Handlers ---
 @app.errorhandler(404)
-def not_found(error):
-    """Handle 404 Not Found errors"""
-    if request.accept_mimetypes.accept_json:
-        return jsonify(error="Not Found"), 404
-    return render_template("404.html"), 404
+def page_not_found(e):
+    """
+    Custom 404 error handler to display the 'No, no, no' poem template.
+    """
+    return not_found_poem()
+
 
 @app.errorhandler(500)
-def internal_server_error(error):
-    """Handle 500 Internal Server Error"""
-    if request.accept_mimetypes.accept_json:
-        return jsonify(error="Internal Server Error"), 500
-    return render_template("500.html"), 500
+def internal_server_error(e):
+    """
+    Custom 500 error handler to display the 'No, no, no' poem template.
+    """
+    return not_found_poem()
 
-@app.errorhandler(503)
-def service_unavailable(error):
-    """Handle 503 Service Unavailable"""
-    if request.accept_mimetypes.accept_json:
-        return jsonify(
-            error="Service Unavailable"), 503
-    return render_template("503.html"), 503
 
-# --- Entry Point ---
-if __name__ == '__main__':
+# --- API Endpoints ---
+
+@app.route("/api/save_poem", methods=["POST"])
+def api_save_poem():
+    """
+    Save a poem to the database.
+    Expects JSON with: user_id, request_id, author, title, text.
+    """
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "Missing JSON body"}), 400
+
+    required_fields = ["user_id", "request_id", "author", "title", "text"]
+    valid, err_msg = validate_json_fields(data, required_fields)
+    if not valid:
+        return jsonify({"error": err_msg}), 400
+
+    user_id = data["user_id"]
+    if not is_authorized(user_id):
+        return jsonify({"error": "Unauthorized: Invalid User ID"}), 401
+
+    try:
+        poem_url = save_to_db(data)
+    except Exception as e:
+        logger.error(f"Error saving poem: {e}", exc_info=True)
+        return jsonify({"error": "Failed to save poem"}), 500
+
+    return jsonify({"status": "success", "poem_url": poem_url}), 201
+
+
+@app.route("/api/delete_poem", methods=["POST"])
+def api_delete_poem():
+    """
+    Delete a specific poem by user_id, author, and title.
+    Expects JSON with: user_id, author, title.
+    """
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "Missing JSON body"}), 400
+
+    required_fields = ["user_id", "author", "title"]
+    valid, err_msg = validate_json_fields(data, required_fields)
+    if not valid:
+        return jsonify({"error": err_msg}), 400
+
+    user_id = data["user_id"]
+    if not is_authorized(user_id):
+        return jsonify({"error": "Unauthorized: Invalid User ID"}), 401
+
+    try:
+        delete_poem_db(user_id, data["author"], data["title"])
+    except Exception as e:
+        logger.error(f"Error deleting poem: {e}", exc_info=True)
+        return jsonify({"error": "Failed to delete poem"}), 500
+
+    return jsonify({"status": "success"}), 200
+
+
+@app.route("/api/delete_author", methods=["POST"])
+def api_delete_author():
+    """
+    Delete all poems by a specific author for a user.
+    Expects JSON with: user_id, author.
+    """
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "Missing JSON body"}), 400
+
+    required_fields = ["user_id", "author"]
+    valid, err_msg = validate_json_fields(data, required_fields)
+    if not valid:
+        return jsonify({"error": err_msg}), 400
+
+    user_id = data["user_id"]
+    if not is_authorized(user_id):
+        return jsonify({"error": "Unauthorized: Invalid User ID"}), 401
+
+    try:
+        delete_author_db(user_id, data["author"])
+    except Exception as e:
+        logger.error(f"Error deleting author: {e}", exc_info=True)
+        return jsonify({"error": "Failed to delete author"}), 500
+
+    return jsonify({"status": "success"}), 200
+
+
+@app.route("/api/delete_all", methods=["POST"])
+def api_delete_all():
+    """
+    Delete all poems for a user.
+    Expects JSON with: user_id.
+    """
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "Missing JSON body"}), 400
+
+    required_fields = ["user_id"]
+    valid, err_msg = validate_json_fields(data, required_fields)
+    if not valid:
+        return jsonify({"error": err_msg}), 400
+
+    user_id = data["user_id"]
+    if not is_authorized(user_id):
+        return jsonify({"error": "Unauthorized: Invalid User ID"}), 401
+
+    try:
+        delete_user_db(user_id)
+    except Exception as e:
+        logger.error(f"Error deleting all poems: {e}", exc_info=True)
+        return jsonify({"error": "Failed to delete poems"}), 500
+
+    return jsonify({"status": "success"}), 200
+
+
+# --- Health Check Endpoint ---
+@app.route("/ping", methods=["GET"])
+def ping():
+    """
+    Health check endpoint.
+    """
+    return jsonify(status="ok"), 200
+
+
+# --- Main Entry Point ---
+if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080, debug=False)

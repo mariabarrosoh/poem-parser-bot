@@ -1,2 +1,3 @@
-subir a repo github
-crear cuenta en Railway
+[ ] TODO
+[ ] Code quality
+[ ] Headers and comments

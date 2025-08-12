@@ -1,27 +1,28 @@
 # 📝 Poem Parser Bot & API
 
-This project allows you to extract structured poem information (title, clean HTML, and Markdown) from images. It supports interaction through:
+This project enables you to extract structured poem information—such as the title and poem text in Markdown format—from images. You can interact with it in three main ways:
 
-- ✅ A **Telegram bot**.
-- 🌐 A **REST API** with Swagger documentation.
+- ✅ Through a Telegram bot named PoemParserBot, which lets you upload, edit, and delete poems directly via chat commands.
+
+- 🌐 Via a REST API that allows uploading poem data to the database or deleting existing poems.
+
+- 📄 Through web views that display saved poems by author and title, providing a user-friendly interface to browse the poem collection.
 
 
 ## 🚀 Features
 
-### Telegram Bot
-- 📷 Send one or more poem images.
-- 🧠 Uses LLMs to extract a clean HTML version of the poem.
-- 📄 Returns the HTML file and Markdown text.
-- ✅ Use `/done` to process images.
-- 🔁 Use `/reset` to discard current session.
-- 🧹 Cleans up user files after each session.
+### Telegram Bot (main.py)
+- Command-based interface to manage poems directly from Telegram.
+- Commands to upload images, edit title, poem content, and author.
+- Save poems to the database.
+- Delete poems, authors, or all poems.
+- Key commands include `/start`, `/done`, `/edittitle`, `/editpoem`, `/editauthor`, `/save`, `/deletepoem`, `/deleteauthor`, `/deleteall`, `/reset`, and `/help`.
 
-### REST API
-- 📤 `/api/parse` endpoint accepts multiple image uploads.
-- 📄 Returns poem title, HTML, and Markdown.
-- 🔐 Uses the same credentials as the bot.
-- ⚙️ Swagger documentation available at `/apidocs`.
-- 🧪 Can be tested using `test_app.py`.
+### Flask Application (app.py)
+- Provides web HTML views to display saved poems by author and title.
+- Allows browsing all poems by a user, by author, or viewing a specific poem.
+- Offers REST API endpoints to save poems, delete poems, delete authors, or delete all poems for a user.
+- Includes basic validation and authorization via user_id.
 
 
 ## 🔑 Required API Tokens
@@ -56,7 +57,7 @@ TELEGRAM_BOT_TOKEN=your_telegram_bot_token
 
 ```bash
 git clone https://github.com/mariabarrosoh/poem-parser-bot
-cd poem-html-bot
+cd poem-parser-bot
 ```
 
 ### 2. Install Dependencies
@@ -70,21 +71,25 @@ pip install -r requirements.txt
 ### 3. Create a .env File
 Edit the .env file with your credentials:
 ```bash
-TELEGRAM_BOT_TOKEN=your_telegram_bot_token
-GROQ_API_KEY=your_groq_api_key
-MODEL_NAME=meta-llama/llama-4-scout-17b-16e-instruct  # Or your preferred model
-DATA_DIR=data
-MAX_IMAGES=5
+TELEGRAM_BOT_TOKEN=your_telegram_bot_token              # Telegram bot token from @BotFather
+GROQ_API_KEY=your_groq_api_key                          # API key for the Groq service
+MODEL_NAME=meta-llama/llama-4-scout-17b-16e-instruct    # Or your preferred model name
+DATA_DIR=data                                           # Directory for temporary user image and output files
+DB_DIR=db                                               # Directory where the poem database is stored
+TEMP_DIR=temp                                           # Temporary directory for intermediate files
+MAX_IMAGES=5                                            # Maximum number of images allowed per upload
+ENV=local                                               # Environment mode: 'local' or 'test' for local testing, use other values for production
+ALLOWED_USER_ID=your_user_telegram_id                   # Comma-separated Telegram user IDs authorized to use the app (e.g., 123456789,987654321)
 ```
 
-## 🤖 Run the Telegram Bot
+## 🤖 Run the Telegram Bot in local
 ```bash
 python main.py
 ```
 
 Open Telegram and talk to your bot. Try sending 1–3 poem images, then use /done to receive the HTML.
 
-## 🌐 Run the API
+## 🌐 Run the API in local
 Start the Flask app with Gunicorn:
 ```
 gunicorn app:app --bind 0.0.0.0:8080
@@ -96,55 +101,40 @@ python app.py
 ```
 
 The API will be available at:
-http://localhost:8080/api/parse
+http://localhost:8080/
 
-You can test the API using **Swagger UI** or the included **Python script**.
-
-### 🔍 Swagger UI
-Access the documentation at: http://localhost:8080/apidocs
-
-You can upload an image using the file input.
-
-Review the result and download HTML/Markdown content.
-
-###  Python Script
-Edit the image paths in the test_app.py script to specify which images to process, then run:
-
-bash
-Copiar
-Editar
-```
-python test_app.py
-```
 
 ## API Deployment
 
-The Poem Parser API is now live and accessible at Render: [https://poem-parser.onrender.com/](https://poem-parser.onrender.com/)
+The Poem Parser API is now live and accessible at Render: [https://poem-parser-api.onrender.com/](https://poem-parser-api.onrender.com/)
 
-You can use this endpoint to parse poem images by sending a POST request to: https://poem-parser.onrender.com/api/parse
+You can see the poems by sending a GET request to: https://poem-parser.onrender.com/
+
+## Bot Deployment
+
+The Poem Parser Bot is now live and accessible at Render: [https://poem-parser-bot.onrender.com/](https://poem-parser-bot.onrender.com/)
+
+You can use this endpoint to parse poem images by Telegram PoemParserBot
 
 
 
 ## 📁 Project Structure
 
 ```bash
-poem-html-bot/
+poem-parser-bot/
 ├── main.py               # Telegram bot entry point
 ├── app.py                # Flask API entry point
 ├── process.py            # Core processing logic
-├── test_app.py           # Script to test the API
 ├── utils/
 │   ├── logging_config.py # Logs configuration
+│   ├── db_utils.py       # DB interaction logic
 │   ├── llm_utils.py      # LLM interaction logic
 │   └── utils.py          # Helper functions (image encoding, etc.)
 ├── prompts/
-│   ├── html_extractor.txt
-│   ├── html_validator.txt
-│   └── title_md_extractor.txt
-.txt
-├── data/                 # Temporary user image and output files
+│   └── poem_extractor.txt
+├── temp/                 # Temporary user image and output files
+├── db/                   # DB with user poems
 ├── templates/            # API templates
-├── Procfile/             # Procfile for Render deployment
 ├── .env                  # Secrets (not committed)
 ├── .gitignore
 └── requirements.txt

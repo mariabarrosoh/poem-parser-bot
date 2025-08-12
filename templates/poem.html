@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ title }}</title>
+  <style>
+    body {
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start; /* Align to the top */
+      min-height: 100vh;
+      background-color: #f7f7f7;
+      font-family: Georgia, serif;
+    }
+
+    .format-text {
+      padding: 2em 1em;
+      text-align: left;
+      background: #ffffff;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      margin-top: 3em; /* Optional: space from the top */
+      font-size: 1rem; /* <--- Adjust this value */
+      line-height: 1.5;
+    }
+
+    .title {
+        margin-top: 0;
+        margin-bottom: 0.7em;
+        /*font-weight: bold;*/
+        font-size: 1.3rem;     /* adjust for size */
+        text-align: center;  /* optional — makes sure it's centered */
+    }
+
+    .author {
+        text-align: right;
+        font-style: italic;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="format-text">
+    <div class="title">{{ title }}</div>
+    </br>
+    {{ poem|safe }}
+    </br>
+    <div class="author">{{ author }}</div>
+  </div>
+
+</body>
+</html>
