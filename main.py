@@ -207,9 +207,9 @@ async def process(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         user_data[user_id]["title"] = escape_markdown(result.get("poem_title")) or "Untitled"
         user_data[user_id]["text"] = escape_markdown(result.get("poem_text")) or "Empty"
 
-        await update.message.reply_text(f"*Author:* {user_data[user_id]['author']}", parse_mode="MarkdownV2")
-        await update.message.reply_text(f"*Title:* {user_data[user_id]['title']}", parse_mode="MarkdownV2")
-        await update.message.reply_text(f"*Poem:*\n\n{user_data[user_id]['text']}", parse_mode="MarkdownV2")
+        await update.message.reply_text(f"*Author:* {user_data[user_id]['author']}", parse_mode="Markdown")
+        await update.message.reply_text(f"*Title:* {user_data[user_id]['title']}", parse_mode="Markdown")
+        await update.message.reply_text(f"*Poem:*\n\n{user_data[user_id]['text']}", parse_mode="Markdown")
         await update.message.reply_text(
             "If something is incorrect, use /edittitle, /editpoem, or /editauthor. When you're ready, use /upload to upload it."
         )
@@ -243,9 +243,9 @@ async def getinfo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     title = data.get("title") or "Untitled"
     text = data.get("text") or "Empty"
 
-    await update.message.reply_text(f"*Author:* {author}", parse_mode="MarkdownV2")
-    await update.message.reply_text(f"*Title:* {title}", parse_mode="MarkdownV2")
-    await update.message.reply_text(f"*Poem:*\n\n{text}", parse_mode="MarkdownV2")
+    await update.message.reply_text(f"*Author:* {author}", parse_mode="Markdown")
+    await update.message.reply_text(f"*Title:* {title}", parse_mode="Markdown")
+    await update.message.reply_text(f"*Poem:*\n\n{text}", parse_mode="Markdown")
     await update.message.reply_text(
         "If something is incorrect, use /edittitle, /editpoem, or /editauthor.\n"
         "When you're ready, use /upload to upload it."

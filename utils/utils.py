@@ -45,7 +45,7 @@ def escape_markdown(content: str) -> str:
     Returns:
         str: Cleaned text with Markdown characters escaped.
     """
-    escape_chars = r'_*[]()~`>#+-=|{}.!'
+    escape_chars = r'_*[]()~`>#+-=|{}!'
     return re.sub(f'([{re.escape(escape_chars)}])', r'\\\1', content).strip()
 
 
