@@ -1,157 +1,379 @@
 """
 Poem Database Module
 
-Handles loading, saving, and managing poems stored in a JSON database.
+Handles loading, saving, and managing poems stored in a PostgreSQL database.
 Each poem is linked to a user, an author, and a title.
 """
 
 import os
-import json
 from datetime import datetime
 from slugify import slugify
+import psycopg2
+from psycopg2.extras import RealDictCursor
+from contextlib import contextmanager
 from dotenv import load_dotenv
 
-# Load environment variables
 load_dotenv()
 
-# === Constants ===
-DB_DIR = os.getenv("DB_DIR")
-if not DB_DIR:
-    raise RuntimeError("DB_DIR environment variable is not set.")
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    raise RuntimeError("DATABASE_URL is not set in environment variables.")
 
-DB_PATH = os.path.join(DB_DIR, "poems.json")
+@contextmanager
+def get_db_cursor():
+    """
+    Context manager to get a PostgreSQL cursor with automatic commit/rollback.
+    """
+    conn = psycopg2.connect(DATABASE_URL)
+    try:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            yield cur
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
-# === Core Functions ===
+def init_db():
+    """
+    Initialize database tables if they do not already exist.
+    """
+    with get_db_cursor() as cur:
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY,
+            user_id VARCHAR(255) UNIQUE NOT NULL
+        );
+        """)
+
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS authors (
+            id SERIAL PRIMARY KEY,
+            user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            author VARCHAR(255) NOT NULL,
+            author_slug VARCHAR(255) NOT NULL
+        );
+        """)
+
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS poems (
+            id SERIAL PRIMARY KEY,
+            author_id INT NOT NULL REFERENCES authors(id) ON DELETE CASCADE,
+            title VARCHAR(255) NOT NULL,
+            title_slug VARCHAR(255) NOT NULL,
+            poem TEXT NOT NULL,
+            poem_url VARCHAR(511),
+            request_id VARCHAR(255),
+            upload_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE (author_id, title_slug)  -- <-- Aquí la restricción UNIQUE
+        );
+        """)
+
+def ensure_user(user_id: str) -> int:
+    """
+    Ensure a user exists in the database, creating it if necessary.
+
+    Args:
+        user_id (str): Unique identifier for the user.
+
+    Returns:
+        int: Database ID of the user.
+    """
+    with get_db_cursor() as cur:
+        cur.execute("SELECT id FROM users WHERE user_id = %s", (user_id,))
+        user = cur.fetchone()
+        if user:
+            return user['id']
+        cur.execute("INSERT INTO users (user_id) VALUES (%s) RETURNING id", (user_id,))
+        return cur.fetchone()['id']
+
+def ensure_author(user_db_id: int, author_name: str) -> int:
+    """
+    Ensure an author exists for a given user, creating it if necessary.
+
+    Args:
+        user_db_id (int): ID of the user in the database.
+        author_name (str): Name of the author.
+
+    Returns:
+        int: Database ID of the author.
+    """
+    author_slug = slugify(author_name)
+    with get_db_cursor() as cur:
+        cur.execute(
+            "SELECT id FROM authors WHERE user_id = %s AND author_slug = %s",
+            (user_db_id, author_slug)
+        )
+        author = cur.fetchone()
+        if author:
+            # Optional: update author_name if changed
+            cur.execute(
+                "UPDATE authors SET author = %s WHERE id = %s",
+                (author_name, author['id'])
+            )
+            return author['id']
+        cur.execute(
+            "INSERT INTO authors (user_id, author_slug, author) VALUES (%s, %s, %s) RETURNING id",
+            (user_db_id, author_slug, author_name)
+        )
+        return cur.fetchone()['id']
 
 def upload_to_db(poem_dict: dict) -> str:
     """
-    Update a poem in the database.
+    Insert or update a poem in the database.
 
     Args:
-        poem_dict (dict): Poem information containing:
-            - user_id (str or int)
-            - author (str)
-            - title (str)
-            - text (str)
-            - request_id (str)
+        poem_dict (dict): Dictionary with poem keys
 
     Returns:
-        str: Poem URL slug (author/title).
+        str: The generated poem URL slug (author_slug/title_slug).
     """
-    poems = load_poems()
     user_id = str(poem_dict.get("user_id"))
-
     if not user_id:
         raise ValueError("Missing required field: user_id")
 
-    # Ensure user exists in database
-    poems.setdefault(user_id, {})
-
     author = poem_dict.get("author", "Unknown").strip()
-    author_id = slugify(author)
-
-    # Create or update author entry
-    poems[user_id].setdefault(author_id, {"author": author, "poems": {}})
-
-    author_dict = poems[user_id][author_id]
-
-    # Update stored author name if it has changed
-    if author != author_dict["author"]:
-        author_dict["author"] = author
-
     title = poem_dict.get("title", "Unknown").strip()
-    title_id = slugify(title)
-    poem_url = f"{author_id}/{title_id}"  # TODO: add user_id in the future
+    text = poem_dict.get("text", "").strip()
+    request_id = poem_dict.get("request_id", "").strip()
 
-    poem_info = {
-        "title": title,
-        "poem": poem_dict.get("text", "").strip(),
-        "request_id": poem_dict.get("request_id", "").strip(),
-        "upload_at": datetime.now().replace(microsecond=0).isoformat(),
-        "poem_url": poem_url
-    }
+    user_db_id = ensure_user(user_id)
+    author_db_id = ensure_author(user_db_id, author)
 
-    # Create or update poem entry
-    author_dict["poems"][title_id] = poem_info
+    title_slug = slugify(title)
+    author_slug = slugify(author)
+    poem_url = f"{author_slug}/{title_slug}"
 
-    # Upload changes to file
-    upload_poems(poems)
+    upload_at = datetime.now().replace(microsecond=0)
+
+    with get_db_cursor() as cur:
+        cur.execute("""
+            INSERT INTO poems (author_id, title_slug, title, poem, poem_url, request_id, upload_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (author_id, title_slug) DO UPDATE SET
+                title = EXCLUDED.title,
+                poem = EXCLUDED.poem,
+                poem_url = EXCLUDED.poem_url,
+                request_id = EXCLUDED.request_id,
+                upload_at = EXCLUDED.upload_at
+
+        """, (author_db_id, title_slug, title, text, poem_url, request_id, upload_at))
 
     return poem_url
 
-
-def upload_poems(poems: dict) -> None:
-    """
-    Upload the entire poems dictionary to the JSON database file.
-
-    Args:
-        poems (dict): Full poems database structure to be uploaded.
-    """
-    os.makedirs(DB_DIR, exist_ok=True)
-    with open(DB_PATH, "w", encoding="utf-8") as f:
-        json.dump(poems, f, ensure_ascii=False, indent=2)
-
-
-def load_poems() -> dict:
-    """
-    Load and return the poems database.
-
-    Returns:
-        dict: Poems database structure. If the file doesn't exist
-              or is invalid JSON, returns an empty dictionary.
-    """
-    if not os.path.exists(DB_PATH):
-        return {}
-    try:
-        with open(DB_PATH, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except json.JSONDecodeError:
-        return {}
-
-
 def get_poems_by_user(user_id: str) -> dict:
     """
-    Retrieve all poems for a given user.
+    Retrieve all poems for a specific user.
 
     Args:
-        user_id (str): User identifier.
+        user_id (str): Unique user identifier.
 
     Returns:
-        dict: Author and poem data for the user.
+        dict: Nested dictionary with authors and their poems.
     """
-    poems = load_poems()
-    return poems.get(user_id, {})
+    user_db_id = None
+    with get_db_cursor() as cur:
+        cur.execute("SELECT id FROM users WHERE user_id = %s", (user_id,))
+        user = cur.fetchone()
+        if not user:
+            return {}
+        user_db_id = user['id']
+
+        cur.execute("""
+            SELECT a.author_slug, a.author, p.title_slug, p.title, p.poem, p.request_id, p.upload_at, p.poem_url
+            FROM authors a
+            JOIN poems p ON p.author_id = a.id
+            WHERE a.user_id = %s
+            ORDER BY a.author, p.upload_at DESC
+        """, (user_db_id,))
+
+        rows = cur.fetchall()
+
+    poems_dict = {}
+    for row in rows:
+        author_id = row['author_slug']
+        if author_id not in poems_dict:
+            poems_dict[author_id] = {
+                "author": row["author"],
+                "poems": {}
+            }
+        poems_dict[author_id]["poems"][row["title_slug"]] = {
+            "title": row["title"],
+            "poem": row["poem"],
+            "request_id": row["request_id"],
+            "upload_at": row["upload_at"].isoformat(),
+            "poem_url": row["poem_url"]
+        }
+    return poems_dict
+
+def get_poems_by_author(user_id: str, author_slug: str) -> dict | None:
+    """
+    Retrieve all poems by a specific author for a given user.
+
+    Args:
+        user_id (str): Unique user identifier.
+        author_slug (str): Slug of the author's name.
+
+    Returns:
+        dict | None: Nested dictionary with author and poems data,
+                     or None if the author does not exist.
+    """
+    with get_db_cursor() as cur:
+        cur.execute("""
+            SELECT id, author
+            FROM authors
+            WHERE user_id = (SELECT id FROM users WHERE user_id = %s)
+              AND author_slug = %s
+        """, (user_id, author_slug))
+        author_row = cur.fetchone()
+        if not author_row:
+            return None
+
+        author_id = author_row['id']
+        author = author_row['author']
+
+        cur.execute("""
+            SELECT title, title_slug, poem, poem_url, request_id, upload_at
+            FROM poems
+            WHERE author_id = %s
+            ORDER BY upload_at DESC
+        """, (author_id,))
+        poems = cur.fetchall()
+
+        return {
+            author_slug: {
+                "author": author,
+                "poems": {
+                    row['title_slug']: {
+                        "title": row['title'],
+                        "poem": row['poem'],
+                        "poem_url": row['poem_url'],
+                        "request_id": row['request_id'],
+                        "upload_at": row['upload_at'].isoformat(),
+                    }
+                    for row in poems
+                }
+            }
+        }
+
+
+def get_poem(user_id: str, author_slug: str, title_slug: str) -> dict | None:
+    """
+    Retrieve a specific poem by author and title for a given user.
+
+    Args:
+        user_id (str): Unique user identifier.
+        author_slug (str): Slug of the author's name.
+        title_slug (str): Slug of the poem's title.
+
+    Returns:
+        dict | None: Poem data (author, title, text, request_id, upload_at)
+                     or None if not found.
+    """
+    with get_db_cursor() as cur:
+        cur.execute("""
+            SELECT a.author, p.title, p.poem, p.poem_url, p.request_id, p.upload_at
+            FROM poems p
+            JOIN authors a ON p.author_id = a.id
+            JOIN users u ON a.user_id = u.id
+            WHERE u.user_id = %s
+              AND a.author_slug = %s
+              AND p.title_slug = %s
+        """, (user_id, author_slug, title_slug))
+        row = cur.fetchone()
+        if not row:
+            return None
+
+        return {
+            "author": row['author'],
+            "title": row['title'],
+            "poem": row['poem'],
+            "poem_url": row['poem_url'],
+            "request_id": row['request_id'],
+            "upload_at": row['upload_at'].isoformat(),
+        }
 
 
 def delete_user_db(user_id: str) -> None:
     """
-    Delete all poems for a specific user.
+    Delete a user and all their related authors and poems.
+
+    Args:
+        user_id (str): Unique user identifier.
+
+    Returns:
+        None
     """
-    poems = load_poems()
-    if poems.pop(user_id, None) is not None:
-        upload_poems(poems)
+    with get_db_cursor() as cur:
+        cur.execute("SELECT id FROM users WHERE user_id = %s", (user_id,))
+        user = cur.fetchone()
+        if not user:
+            return
+        cur.execute("DELETE FROM users WHERE id = %s", (user['id'],))
 
 
 def delete_author_db(user_id: str, author: str) -> None:
     """
-    Delete all poems for a specific author under a user.
+    Delete a specific author and all their poems for a given user.
+
+    Args:
+        user_id (str): Unique user identifier.
+        author (str): Author name.
+
+    Returns:
+        None
     """
-    poems = load_poems()
-    author_id = slugify(author)
-    if user_id in poems and author_id in poems[user_id]:
-        poems[user_id].pop(author_id, None)
-        upload_poems(poems)
+    with get_db_cursor() as cur:
+        cur.execute("SELECT id FROM users WHERE user_id = %s", (user_id,))
+        user = cur.fetchone()
+        if not user:
+            return
+        user_db_id = user['id']
+
+        author_slug = slugify(author)
+        cur.execute(
+            "SELECT id FROM authors WHERE user_id = %s AND author_slug = %s",
+            (user_db_id, author_slug)
+        )
+        author_row = cur.fetchone()
+        if not author_row:
+            return
+
+        cur.execute("DELETE FROM authors WHERE id = %s", (author_row['id'],))
 
 
 def delete_poem_db(user_id: str, author: str, title: str) -> None:
     """
-    Delete a specific poem for a given user and author.
-    """
-    poems = load_poems()
-    author_id = slugify(author)
-    title_id = slugify(title)
+    Delete a specific poem by author and title for a given user.
 
-    if user_id in poems and author_id in poems[user_id]:
-        poems_dict = poems[user_id][author_id]["poems"]
-        if poems_dict.pop(title_id, None) is not None:
-            upload_poems(poems)
+    Args:
+        user_id (str): Unique user identifier.
+        author (str): Author name.
+        title (str): Poem title.
+
+    Returns:
+        None
+    """
+    with get_db_cursor() as cur:
+        cur.execute("SELECT id FROM users WHERE user_id = %s", (user_id,))
+        user = cur.fetchone()
+        if not user:
+            return
+        user_db_id = user['id']
+
+        author_slug = slugify(author)
+        title_slug = slugify(title)
+
+        cur.execute(
+            "SELECT id FROM authors WHERE user_id = %s AND author_slug = %s",
+            (user_db_id, author_slug)
+        )
+        author_row = cur.fetchone()
+        if not author_row:
+            return
+
+        cur.execute(
+            "DELETE FROM poems WHERE author_id = %s AND title_slug = %s",
+            (author_row['id'], title_slug)
+        )

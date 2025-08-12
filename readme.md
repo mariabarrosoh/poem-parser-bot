@@ -76,10 +76,10 @@ TELEGRAM_BOT_TOKEN=your_telegram_bot_token              # Telegram bot token fro
 GROQ_API_KEY=your_groq_api_key                          # API key for the Groq service
 MODEL_NAME=meta-llama/llama-4-scout-17b-16e-instruct    # Or your preferred model name
 DATA_DIR=data                                           # Directory for temporary user image and output files
-DB_DIR=db                                               # Directory where the poem database is stored
+DATABASE_URL=your_db_url                                # Posgresql DB url from render
 TEMP_DIR=temp                                           # Temporary directory for intermediate files
 MAX_IMAGES=5                                            # Maximum number of images allowed per upload
-POEM_DOMAIN=http://localhost:8080                       # Poem Domain for local, https://poem-parser.onrender.com for production
+POEM_DOMAIN=http://localhost:8080                       # Poem Domain for local, render api domain for production
 ALLOWED_USER_ID=your_user_telegram_id                   # Comma-separated Telegram user IDs authorized to use the app (e.g., 123456789,987654321)
 PYTHON_VERSION=3.10.18
 ```

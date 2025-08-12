@@ -10,3 +10,4 @@ flasgger==0.9.7.1
 flask-cors==6.0.1
 gunicorn==23.0.0
 python-slugify==8.0.4
+psycopg2-binary==2.9.10

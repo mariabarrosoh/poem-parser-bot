@@ -10,7 +10,10 @@ from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 
 from utils.db_utils import (
+    init_db,
     upload_to_db,
+    get_poem,
+    get_poems_by_author,
     get_poems_by_user,
     delete_poem_db,
     delete_author_db,
@@ -19,13 +22,16 @@ from utils.db_utils import (
 from utils.utils import markdown_to_html
 from utils.logging_config import configure_logger
 
+# --- Create DB tables if not exist ---
+init_db()
+
+
 # --- Load Environment Variables ---
 load_dotenv()
-DB_DIR = os.getenv("DB_DIR")
 ALLOWED_USER_ID = os.getenv("ALLOWED_USER_ID")
 
-if not DB_DIR or not ALLOWED_USER_ID:
-    raise RuntimeError("DB_DIR or ALLOWED_USER_ID environment variable is not set.")
+if not ALLOWED_USER_ID:
+    raise RuntimeError("LLOWED_USER_ID environment variable is not set.")
 
 ALLOWED_USERS = {user_id.strip() for user_id in ALLOWED_USER_ID.split(",")}
 
@@ -83,12 +89,12 @@ def view_author_poems(author_key):
     """
     View all poems by a specific author.
     """
-    user_poems = get_poems_by_user(ALLOWED_USER_ID)
-    if author_key in user_poems:
+    author_data = get_poems_by_author(ALLOWED_USER_ID, author_key)
+    if author_data:
         return render_template(
             "poems_author_list.html",
             author_slug=author_key,
-            author_data=user_poems[author_key],
+            author_data=author_data[author_key],
         )
     return not_found_poem()
 
@@ -98,14 +104,10 @@ def view_poem(author_key, title_key):
     """
     View a specific poem by author and title.
     """
-    user_poems = get_poems_by_user(ALLOWED_USER_ID)
-    if author_key in user_poems:
-        author = user_poems[author_key]["author"]
-        poems = user_poems[author_key]["poems"]
-        if title_key in poems:
-            title = poems[title_key]["title"]
-            poem_html = markdown_to_html(poems[title_key]["poem"])
-            return render_template("poem.html", author=author, title=title, poem=poem_html)
+    poem = get_poem(ALLOWED_USER_ID, author_key, title_key)
+    if poem:
+        poem_html = markdown_to_html(poem["poem"])
+        return render_template("poem.html", author=poem["author"], title=poem["title"], poem=poem_html)
     return not_found_poem()
 
 
@@ -149,7 +151,7 @@ def api_upload_poem():
     try:
         poem_url = upload_to_db(data)
     except Exception as e:
-        logger.error(f"Error saving poem: {e}", exc_info=True)
+        logger.error(f"Error uploading poem: {e}", exc_info=True)
         return jsonify({"error": "Failed to upload poem"}), 500
 
     return jsonify({"status": "success", "poem_url": poem_url}), 201

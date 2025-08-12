@@ -200,7 +200,7 @@ async def process(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         return
 
     try:
-        result = process(image_paths=image_paths, request_id=request_id)
+        result = process_poem(image_paths=image_paths, request_id=request_id)
         user_data[user_id]["title"] = escape_markdown(result.get("poem_title")) or "Untitled"
         user_data[user_id]["text"] = escape_markdown(result.get("poem_text")) or "Empty"
 
