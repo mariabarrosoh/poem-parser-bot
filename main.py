@@ -12,6 +12,9 @@ import imghdr
 from functools import wraps
 from typing import Optional
 
+from flask import Flask
+from flask_cors import CORS
+import threading
 import aiohttp
 from dotenv import load_dotenv
 from telegram import Update, BotCommand
@@ -659,6 +662,20 @@ async def set_bot_commands(application):
     await application.bot.set_my_commands(commands)
 
 
+# --- Flask App Initialization ---
+
+app = Flask(__name__)
+CORS(app)  # Enable Cross-Origin Resource Sharing
+
+
+@app.route('/')
+def home():
+    return "Bot running"
+
+def run_webserver():
+    app.run(host="0.0.0.0", port=8080, debug=False)
+
+
 # --- Entry point ---
 
 if __name__ == "__main__":
@@ -666,6 +683,9 @@ if __name__ == "__main__":
     Entry point for running the Telegram bot.
     Initializes handlers and starts polling.
     """
+
+    threading.Thread(target=run_webserver, daemon=True).start()
+
 
     # Clean data dir
     cleanup_TEMP_DIR()
