@@ -2,7 +2,7 @@
 
 This project enables you to extract structured poem information—such as the title and poem text in Markdown format—from images. You can interact with it in three main ways:
 
-- ✅ Through a Telegram bot named PoemParserBot, which lets you upload, edit, and delete poems directly via chat commands.
+- ✅ Through a Telegram bot, which lets you upload, edit, and delete poems directly via chat commands.
 
 - 🌐 Via a REST API that allows uploading poem data to the database or deleting existing poems.
 
@@ -61,6 +61,7 @@ cd poem-parser-bot
 ```
 
 ### 2. Install Dependencies
+This project requires **Python 3.12.0** to ensure compatibility.
 We recommend using a virtual environment:
 ```bash
 python3 -m venv venv
@@ -80,6 +81,7 @@ TEMP_DIR=temp                                           # Temporary directory fo
 MAX_IMAGES=5                                            # Maximum number of images allowed per upload
 POEM_DOMAIN=http://localhost:8080                       # Poem Domain for local, https://poem-parser.onrender.com for production
 ALLOWED_USER_ID=your_user_telegram_id                   # Comma-separated Telegram user IDs authorized to use the app (e.g., 123456789,987654321)
+PYTHON_VERSION=3.10.18
 ```
 
 ## 🤖 Run the Telegram Bot in local
@@ -102,20 +104,6 @@ python app.py
 
 The API will be available at:
 http://localhost:8080/
-
-
-## API Deployment
-
-The Poem Parser API is now live and accessible at Render: [https://poem-parser.onrender.com/](https://poem-parser.onrender.com/)
-
-You can see the poems by sending a GET request to: https://poem-parser.onrender.com/
-
-## Bot Deployment
-
-The Poem Parser Bot is now live and accessible at Render: [https://poem-parser-bot.onrender.com/](https://poem-parser-bot.onrender.com/)
-
-You can use this endpoint to parse poem images by Telegram PoemParserBot
-
 
 
 ## 📁 Project Structure

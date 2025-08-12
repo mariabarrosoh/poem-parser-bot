@@ -23,9 +23,9 @@ DB_PATH = os.path.join(DB_DIR, "poems.json")
 
 # === Core Functions ===
 
-def save_to_db(poem_dict: dict) -> str:
+def upload_to_db(poem_dict: dict) -> str:
     """
-    Save or update a poem in the database.
+    Update a poem in the database.
 
     Args:
         poem_dict (dict): Poem information containing:
@@ -74,18 +74,18 @@ def save_to_db(poem_dict: dict) -> str:
     # Create or update poem entry
     author_dict["poems"][title_id] = poem_info
 
-    # Save changes to file
-    save_poems(poems)
+    # Upload changes to file
+    upload_poems(poems)
 
     return poem_url
 
 
-def save_poems(poems: dict) -> None:
+def upload_poems(poems: dict) -> None:
     """
-    Save the entire poems dictionary to the JSON database file.
+    Upload the entire poems dictionary to the JSON database file.
 
     Args:
-        poems (dict): Full poems database structure to be saved.
+        poems (dict): Full poems database structure to be uploaded.
     """
     os.makedirs(DB_DIR, exist_ok=True)
     with open(DB_PATH, "w", encoding="utf-8") as f:
@@ -129,7 +129,7 @@ def delete_user_db(user_id: str) -> None:
     """
     poems = load_poems()
     if poems.pop(user_id, None) is not None:
-        save_poems(poems)
+        upload_poems(poems)
 
 
 def delete_author_db(user_id: str, author: str) -> None:
@@ -140,7 +140,7 @@ def delete_author_db(user_id: str, author: str) -> None:
     author_id = slugify(author)
     if user_id in poems and author_id in poems[user_id]:
         poems[user_id].pop(author_id, None)
-        save_poems(poems)
+        upload_poems(poems)
 
 
 def delete_poem_db(user_id: str, author: str, title: str) -> None:
@@ -154,4 +154,4 @@ def delete_poem_db(user_id: str, author: str, title: str) -> None:
     if user_id in poems and author_id in poems[user_id]:
         poems_dict = poems[user_id][author_id]["poems"]
         if poems_dict.pop(title_id, None) is not None:
-            save_poems(poems)
+            upload_poems(poems)

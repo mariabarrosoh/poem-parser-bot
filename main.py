@@ -23,7 +23,7 @@ from telegram.ext import (
     filters,
 )
 
-from process import process
+from process import process_poem
 from utils.logging_config import configure_logger
 from utils.utils import escape_markdown
 
@@ -167,25 +167,25 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         f"Author set to: {author}.\n"
         "You can change it anytime using /editauthor.\n\n"
         "Now, please send one or more images of the poem.\n"
-        "When you're done, use /done to process them."
+        "When you're done, use /process to process them."
     )
 
 
 @restricted_command
-async def done(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def process(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
-    Handle the /done command.
+    Handle the /process command.
 
     Processes all uploaded images, extracts poem data, and shows results.
     """
     user_id = update.effective_user.id
     request_id = user_sessions.get(user_id)
     input_dir = get_user_input_dir(user_id)
-    logger.info(f"{user_id} | /done command invoked")
+    logger.info(f"{user_id} | /process command invoked")
 
     if not input_dir or not os.path.exists(input_dir):
         logger.warning(f"{user_id} | No active session or input directory found")
-        await update.message.reply_text("You haven't sent any images yet. Please upload images before using /done.")
+        await update.message.reply_text("You haven't sent any images yet. Please upload images before using /process.")
         return
 
     image_paths = sorted(
@@ -204,18 +204,18 @@ async def done(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         user_data[user_id]["title"] = escape_markdown(result.get("poem_title")) or "Untitled"
         user_data[user_id]["text"] = escape_markdown(result.get("poem_text")) or "Empty"
 
-        await update.message.reply_text(f"*Author:* {user_data[user_id]['author']}", parse_mode="Markdown")
-        await update.message.reply_text(f"*Title:* {user_data[user_id]['title']}", parse_mode="Markdown")
-        await update.message.reply_text(f"*Poem:*\n\n{user_data[user_id]['text']}", parse_mode="Markdown")
+        await update.message.reply_text(f"*Author:* {user_data[user_id]['author']}", parse_mode="MarkdownV2")
+        await update.message.reply_text(f"*Title:* {user_data[user_id]['title']}", parse_mode="MarkdownV2")
+        await update.message.reply_text(f"*Poem:*\n\n{user_data[user_id]['text']}", parse_mode="MarkdownV2")
         await update.message.reply_text(
-            "If something is incorrect, use /edittitle, /editpoem, or /editauthor. When you're ready, use /save to save it."
+            "If something is incorrect, use /edittitle, /editpoem, or /editauthor. When you're ready, use /upload to upload it."
         )
 
         logger.info(f"{user_id} | {request_id} | Poem processed successfully")
     except Exception as e:
         logger.error(f"{user_id} | {request_id} | Error processing poem: {e}", exc_info=True)
         await update.message.reply_text(
-            "An error occurred while processing the poem. Please try /done, /start, or /reset again."
+            "An error occurred while processing the poem. Please try /process, /start, or /reset again."
         )
 
 
@@ -240,12 +240,12 @@ async def getinfo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     title = data.get("title") or "Untitled"
     text = data.get("text") or "Empty"
 
-    await update.message.reply_text(f"*Author:* {author}", parse_mode="Markdown")
-    await update.message.reply_text(f"*Title:* {title}", parse_mode="Markdown")
-    await update.message.reply_text(f"*Poem:*\n\n{text}", parse_mode="Markdown")
+    await update.message.reply_text(f"*Author:* {author}", parse_mode="MarkdownV2")
+    await update.message.reply_text(f"*Title:* {title}", parse_mode="MarkdownV2")
+    await update.message.reply_text(f"*Poem:*\n\n{text}", parse_mode="MarkdownV2")
     await update.message.reply_text(
         "If something is incorrect, use /edittitle, /editpoem, or /editauthor.\n"
-        "When you're ready, use /save to save it."
+        "When you're ready, use /upload to upload it."
     )
     logger.info(f"{user_id} | {request_id} | Poem info displayed")
 
@@ -273,7 +273,7 @@ async def edittitle(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_data[user_id]["title"] = title
     await update.message.reply_text(
         f"Title updated to: {title}\n\n"
-        "You can use /getinfo to review the current poem data, or /save to save all the poem information."
+        "You can use /getinfo to review the current poem data, or /upload to upload all the poem information."
     )
     logger.info(f"{user_id} | {request_id} | Poem title updated")
 
@@ -302,7 +302,7 @@ async def editpoem(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_data[user_id]["text"] = text
     await update.message.reply_text(
         "Poem text updated.\n\n"
-        "You can use /getinfo to review the current poem data, or /save to save all the poem information."
+        "You can use /getinfo to review the current poem data, or /upload to upload all the poem information."
     )
     logger.info(f"{user_id} | {request_id} | Poem text updated")
 
@@ -330,7 +330,7 @@ async def editauthor(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
     user_data[user_id]["author"] = author
     await update.message.reply_text(
         f"Author updated to: {author}\n\n"
-        "You can use /getinfo to review the current poem data, or /save to save all the poem information."
+        "You can use /getinfo to review the current poem data, or /upload to upload all the poem information."
     )
     logger.info(f"{user_id} | {request_id} | Poem author updated")
 
@@ -340,7 +340,7 @@ async def deleteall(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Handle the /deleteall command.
 
-    Allows user to delete all poems saved.
+    Allows user to delete all poems uploaded.
     """
     user_id = update.effective_user.id
     logger.info(f"{user_id} | /deleteall")
@@ -375,7 +375,7 @@ async def deleteauthor(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Handle the /deleteauthor command.
 
-    Allows user to delete all author poems saved.
+    Allows user to delete all author poems uploaded.
     """
     user_id = update.effective_user.id
     logger.info(f"{user_id} | /deleteauthor")
@@ -421,7 +421,7 @@ async def deletepoem(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
     """
     Handle the /deletepoem command.
 
-    Allows user to delete a poem saved.
+    Allows user to delete a poem uploaded.
     """
     user_id = update.effective_user.id
     logger.info(f"{user_id} | /deletepoem")
@@ -474,14 +474,14 @@ async def deletepoem(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
 
 
 @restricted_command
-async def save(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def upload(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
-    Handle the /save command.
+    Handle the /upload command.
 
-    Allows saving poem info to the database.
+    Allows uploading poem info to the database.
     """
     user_id = update.effective_user.id
-    logger.info(f"{user_id} | /save")
+    logger.info(f"{user_id} | /upload")
     data = user_data.get(user_id)
     request_id = user_sessions.get(user_id)
 
@@ -502,24 +502,24 @@ async def save(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.post(f"{POEM_DOMAIN}/api/save_poem", json=poem_payload, headers=headers) as resp:
+            async with session.post(f"{POEM_DOMAIN}/api/upload_poem", json=poem_payload, headers=headers) as resp:
                 if resp.status == 201:
                     data = await resp.json()
                     poem_url = data["poem_url"]
                     poem_url = f"{POEM_DOMAIN}/{poem_url}"
                     await update.message.reply_text(
-                        f"Poem saved successfully! ✅\nYou can view it here: {poem_url}"
+                        f"Poem uploaded successfully! ✅\nYou can view it here: {poem_url}"
                     )
                     delete_user_session(user_id)
                 else:
                     error_text = await resp.text()
-                    logger.error(f"Failed to save poem via API. Status: {resp.status} - {error_text}")
+                    logger.error(f"Failed to upload poem via API. Status: {resp.status} - {error_text}")
                     await update.message.reply_text(
-                        "Failed to save poem. Please try again later."
+                        "Failed to upload poem. Please try again later."
                     )
     except aiohttp.ClientError as e:
         logger.exception(f"{user_id} | {request_id} | Network error: {e}")
-        await update.message.reply_text("Network error while saving poem. Please try again later.")
+        await update.message.reply_text("Network error while uploading poem. Please try again later.")
 
 
 @restricted_command
@@ -543,15 +543,15 @@ async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
     help_text = (
         "Available commands:\n"
         "/start <author> - Start a new session entering the author's name\n"
-        "/done - Process uploaded images and extract poem\n"
+        "/process - Process uploaded images and extract poem\n"
         "/edittitle <title> - Edit the poem's title\n"
         "/editpoem <text> - Edit the poem's content\n"
         "/editauthor <author> - Edit the author's name\n"
-        "/save - Save the poem data to the database\n"
+        "/upload - Upload the poem data to the database\n"
         "/getinfo: Show poem information\n"
-        "/deleteall: Delete all poems saved\n"
-        "/deleteauthor <author>: Delete all author poems saved\n"
-        "/deletepoem <title> & <author>: Delete a poem saved\n"
+        "/deleteall: Delete all poems uploaded\n"
+        "/deleteauthor <author>: Delete all author poems uploaded\n"
+        "/deletepoem <title> & <author>: Delete a poem uploaded\n"
         "/reset - Clear the current session\n"
         "/help - Show this help message"
     )
@@ -574,7 +574,7 @@ async def unknown_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Handles incoming image uploads.
-    Saves images in user session folder, preserving the order.
+    Uploades images in user session folder, preserving the order.
     Enforces max number of images.
     """
     user_id = update.effective_user.id
@@ -595,9 +595,9 @@ async def handle_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # If user already exceeded max images, discard new image and notify
     if len(image_paths) >= MAX_IMAGES:
-        logger.warning(f"{user_id} | {request_id} | The image was not saved because the maximum number of images was reached")
+        logger.warning(f"{user_id} | {request_id} | The image was not uploaded because the maximum number of images was reached")
         await update.message.reply_text(
-            f"You've reached the maximum of {MAX_IMAGES} images. This image was not saved. Please use /done to process the rest."
+            f"You've reached the maximum of {MAX_IMAGES} images. This image was not uploaded. Please use /process to process the rest."
         )
         return
 
@@ -625,15 +625,15 @@ async def handle_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Notify user if this image hits the max count exactly
     if image_index == MAX_IMAGES:
-        await update.message.reply_text(f"You've reached the maximum of {MAX_IMAGES} images. Use /done to process them.")
+        await update.message.reply_text(f"You've reached the maximum of {MAX_IMAGES} images. Use /process to process them.")
         return
 
     await update.message.reply_text(
-        "Image received and saved.\n"
-        "You can send more images, or use /done when you're ready.",
+        "Image received and uploaded.\n"
+        "You can send more images, or use /process when you're ready.",
         parse_mode="Markdown"
     )
-    logger.info(f"{user_id} | {request_id} | Image saved at {final_path}")
+    logger.info(f"{user_id} | {request_id} | Image uploaded at {final_path}")
 
 
 # --- Register Bot Commands (Menu) ---
@@ -644,14 +644,14 @@ async def set_bot_commands(application):
     """
     commands = [
         BotCommand("start", "Start a new session"),
-        BotCommand("done", "Process uploaded images"),
+        BotCommand("process", "Process uploaded images"),
         BotCommand("edittitle", "Edit the poem's title"),
         BotCommand("editpoem", "Edit the poem's content"),
         BotCommand("editauthor", "Edit the author's name"),
-        BotCommand("save", "Save poem to the database"),
-        BotCommand("deleteall", "Delete all poems saved"),
-        BotCommand("deleteauthor", "Delete all author poems saved"),
-        BotCommand("deletepoem", "Delete a poem saved"),
+        BotCommand("upload", "Upload poem to the database"),
+        BotCommand("deleteall", "Delete all poems uploaded"),
+        BotCommand("deleteauthor", "Delete all author poems uploaded"),
+        BotCommand("deletepoem", "Delete a poem uploaded"),
         BotCommand("getinfo", "Show poem info"),
         BotCommand("reset", "Reset current session"),
         BotCommand("help", "Show help message")
@@ -678,12 +678,12 @@ if __name__ == "__main__":
     application.post_init = set_bot_commands
 
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("done", done))
+    application.add_handler(CommandHandler("process", process))
     application.add_handler(CommandHandler("edittitle", edittitle))
     application.add_handler(CommandHandler("editpoem", editpoem))
     application.add_handler(CommandHandler("editauthor", editauthor))
     application.add_handler(CommandHandler("getinfo", getinfo))
-    application.add_handler(CommandHandler("save", save))
+    application.add_handler(CommandHandler("upload", upload))
     application.add_handler(CommandHandler("deleteall", deleteall))
     application.add_handler(CommandHandler("deleteauthor", deleteauthor))
     application.add_handler(CommandHandler("deletepoem", deletepoem))

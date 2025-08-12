@@ -1,7 +1,7 @@
 """
 Poem Management Flask Application
 
-Provides web views and API endpoints to save, view, and delete poems by author and title.
+Provides web views and API endpoints to upload, view, and delete poems by author and title.
 """
 
 import os
@@ -10,7 +10,7 @@ from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 
 from utils.db_utils import (
-    save_to_db,
+    upload_to_db,
     get_poems_by_user,
     delete_poem_db,
     delete_author_db,
@@ -127,10 +127,10 @@ def internal_server_error(e):
 
 # --- API Endpoints ---
 
-@app.route("/api/save_poem", methods=["POST"])
-def api_save_poem():
+@app.route("/api/upload_poem", methods=["POST"])
+def api_upload_poem():
     """
-    Save a poem to the database.
+    Upload a poem to the database.
     Expects JSON with: user_id, request_id, author, title, text.
     """
     data = request.get_json()
@@ -147,10 +147,10 @@ def api_save_poem():
         return jsonify({"error": "Unauthorized: Invalid User ID"}), 401
 
     try:
-        poem_url = save_to_db(data)
+        poem_url = upload_to_db(data)
     except Exception as e:
         logger.error(f"Error saving poem: {e}", exc_info=True)
-        return jsonify({"error": "Failed to save poem"}), 500
+        return jsonify({"error": "Failed to upload poem"}), 500
 
     return jsonify({"status": "success", "poem_url": poem_url}), 201
 

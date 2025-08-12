@@ -37,7 +37,7 @@ def empty_html(raw_html: str) -> bool:
     return normalized == empty_template
 
 
-def process(image_paths: list[str], request_id: str) -> dict[str, str]:
+def process_poem(image_paths: list[str], request_id: str) -> dict[str, str]:
     """
     Process a list of poem images to extract the poem's title and text content.
 
@@ -80,14 +80,14 @@ if __name__ == "__main__":
 
     import uuid
 
-    image_paths = ["poems/input/junin.jpeg"]
+    image_paths = ["poems/junin.jpeg"]
 
     try:
         # Generate a short unique request ID for logging
         request_id = uuid.uuid4().hex[:16]
 
         # Process the poem images and print results
-        result = process(image_paths, request_id)
+        result = process_poem(image_paths, request_id)
         print(result)
 
     except Exception as error:
