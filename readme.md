@@ -78,7 +78,7 @@ DATA_DIR=data                                           # Directory for temporar
 DB_DIR=db                                               # Directory where the poem database is stored
 TEMP_DIR=temp                                           # Temporary directory for intermediate files
 MAX_IMAGES=5                                            # Maximum number of images allowed per upload
-POEM_DOMAIN=http://localhost:8080                       # Poem Domain for local, https://poem-parser.onrender.com/ for production
+POEM_DOMAIN=http://localhost:8080                       # Poem Domain for local, https://poem-parser.onrender.com for production
 ALLOWED_USER_ID=your_user_telegram_id                   # Comma-separated Telegram user IDs authorized to use the app (e.g., 123456789,987654321)
 ```
 
