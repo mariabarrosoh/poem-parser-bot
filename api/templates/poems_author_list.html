@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{{ author_data.author }} — Poems</title>
+  <title>{{ app_name }} — {{ author_data.author }}</title>
   <style>
     body {
       background-color: #f7f7f7;
@@ -59,7 +59,7 @@
 <body>
 
   <div class="poem-section">
-    <h2>{{ author_data.author }}</h2>
+    <h3>{{ author_data.author }}</h3>
     <ul class="poem-list">
       {% for poem_slug, poem_info in author_data.poems|dictsort %}
         <li>

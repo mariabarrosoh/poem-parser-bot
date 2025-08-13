@@ -12,7 +12,6 @@ from typing import Optional, Tuple, List
 from groq import Groq
 from dotenv import load_dotenv
 
-# Load environment variables
 load_dotenv()
 
 
@@ -30,12 +29,13 @@ def load_prompt(path: str) -> str:
         with open(path, "r", encoding="utf-8") as f:
             return f.read().strip()
     except Exception as e:
-        raise RuntimeError(f"Failed to read prompt file: {e}")
+        raise RuntimeError(f"Failed to read prompt file: {e}") from e
 
 
 def parse_json_from_response(content: str) -> str:
     """
-    Extract JSON string from LLM's response by removing Markdown code block delimiters.
+    Extract JSON string from LLM's response by removing Markdown code block
+    delimiters.
 
     Args:
         content (str): Raw response string from the model.
@@ -44,7 +44,8 @@ def parse_json_from_response(content: str) -> str:
         str: Cleaned JSON string ready for parsing.
     """
     # Remove fenced code blocks with json syntax
-    cleaned = re.sub(r"```json\s*([\s\S]*?)\s*```", r"\1", content, flags=re.IGNORECASE).strip()
+    cleaned = re.sub(r"```json\s*([\s\S]*?)\s*```", r"\1", content,
+                     flags=re.IGNORECASE).strip()
 
     # Remove any remaining fenced code blocks (without language specifier)
     if cleaned.startswith("```") and cleaned.endswith("```"):
@@ -53,31 +54,32 @@ def parse_json_from_response(content: str) -> str:
     return cleaned
 
 
-def call_extractor(encoded_images: List[str], request_id: str) -> Optional[Tuple[str, str]]:
+def call_extractor(
+        encoded_images: List[str]) -> Optional[Tuple[str, str]]:
     """
     Call the Groq API to extract poem metadata (title and markdown text)
     from base64-encoded images.
 
     Args:
         encoded_images (List[str]): List of base64-encoded images.
-        request_id (str): Unique request identifier for logging.
 
     Returns:
-        Optional[Tuple[str, str]]: A tuple of (title, markdown text) if extraction succeeds,
-                                   otherwise (None, None).
+        Optional[Tuple[str, str]]: A tuple of (title, markdown text) if
+                                   extraction succeeds, otherwise (None, None).
     """
     api_key = os.environ.get("GROQ_API_KEY")
     model_name = os.environ.get("MODEL_NAME")
 
     if not api_key:
-        raise RuntimeError(f"{request_id} | GROQ_API_KEY not set.")
+        raise RuntimeError("GROQ_API_KEY not set.")
     if not model_name:
-        raise RuntimeError(f"{request_id} | MODEL_NAME not set.")
+        raise RuntimeError("MODEL_NAME not set.")
 
     try:
         # Prepare image blocks in the format expected by the Groq API
         image_blocks = [
-            {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img}"}}
+            {"type": "image_url",
+             "image_url": {"url": f"data:image/jpeg;base64,{img}"}}
             for img in encoded_images
         ]
 
@@ -90,7 +92,9 @@ def call_extractor(encoded_images: List[str], request_id: str) -> Optional[Tuple
             messages=[
                 {
                     "role": "user",
-                    "content": [{"type": "text", "text": prompt}] + image_blocks,
+                    "content": [
+                        {"type": "text", "text": prompt}
+                        ] + image_blocks,
                 }
             ],
             max_completion_tokens=2048,
@@ -114,4 +118,5 @@ def call_extractor(encoded_images: List[str], request_id: str) -> Optional[Tuple
         # Return None if JSON parsing fails
         return None, None
     except Exception as e:
-        raise RuntimeError(f"{request_id} | Poem extraction failed: {e}")
+        raise RuntimeError(
+            f"Poem extraction failed: {e}") from e

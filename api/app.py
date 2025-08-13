@@ -1,7 +1,7 @@
 """
 Poem Management Flask Application
 
-Provides web views and API endpoints to upload, view, and delete poems by author and title.
+Provides web views and API endpoints to upload, view, and delete poems.
 """
 
 import os
@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 
-from utils.db_utils import (
+from api.utils.db_utils import (
     init_db,
     upload_to_db,
     get_poem,
@@ -19,26 +19,32 @@ from utils.db_utils import (
     delete_author_db,
     delete_user_db,
 )
-from utils.utils import markdown_to_html
-from utils.logging_config import configure_logger
+from api.utils.utils import markdown_to_html
+from api.utils.logging_config import configure_logger
+
+
+# --- Load Environment Variables ---
+load_dotenv()
+
+ALLOWED_USER_ID = os.getenv("ALLOWED_USER_ID")
+MAIN_USER_ID = os.getenv("MAIN_USER_ID")
+APP_NAME = os.getenv("APP_NAME")
+
+if not ALLOWED_USER_ID or not APP_NAME or not MAIN_USER_ID:
+    raise RuntimeError("ALLOWED_USER_ID or APP_NAME or MAIN_USER_ID  "
+                       "environment variable is not set.")
+
+ALLOWED_USERS = {user_id.strip() for user_id in ALLOWED_USER_ID.split(",")}
+
 
 # --- Create DB tables if not exist ---
 init_db()
 
 
-# --- Load Environment Variables ---
-load_dotenv()
-ALLOWED_USER_ID = os.getenv("ALLOWED_USER_ID")
-
-if not ALLOWED_USER_ID:
-    raise RuntimeError("LLOWED_USER_ID environment variable is not set.")
-
-ALLOWED_USERS = {user_id.strip() for user_id in ALLOWED_USER_ID.split(",")}
-
 # --- Flask App Initialization ---
 app = Flask(__name__)
 CORS(app)  # Enable Cross-Origin Resource Sharing
-logger = configure_logger("PoemInterface")
+logger = configure_logger(APP_NAME)
 
 
 # --- Helper Functions ---
@@ -53,7 +59,8 @@ def not_found_poem():
         "o el poema no lo tengo </br>"
         "o la web no funciona.</br>"
     )
-    return render_template("poem.html", author=author, title=title, poem=poem)
+    return render_template("poem.html", author=author, title=title,
+                           poem=poem, app_name=APP_NAME)
 
 
 def is_authorized(user_id: str) -> bool:
@@ -75,13 +82,29 @@ def validate_json_fields(json_data: dict, required_fields: list):
 
 
 # --- Web View Routes ---
-@app.route("/", strict_slashes=False)
+@app.route("/")
 def view_poems():
     """
     View all poems by the authorized user.
     """
-    user_poems = get_poems_by_user(ALLOWED_USER_ID)
-    return render_template("poems_list.html", poems_data=user_poems)
+    user_id = MAIN_USER_ID
+    if is_authorized(user_id):
+        user_poems = get_poems_by_user(MAIN_USER_ID)
+        return render_template("poems_list.html", poems_data=user_poems,
+                               app_name=APP_NAME)
+    return not_found_poem()
+
+
+@app.route("/id/<user_id>")
+def view_poems_other(user_id):
+    """
+    View all poems by the authorized user.
+    """
+    if is_authorized(user_id):
+        user_poems = get_poems_by_user(user_id)
+        return render_template("poems_list.html", poems_data=user_poems,
+                               app_name=APP_NAME)
+    return not_found_poem()
 
 
 @app.route("/<author_key>", strict_slashes=False)
@@ -89,13 +112,29 @@ def view_author_poems(author_key):
     """
     View all poems by a specific author.
     """
-    author_data = get_poems_by_author(ALLOWED_USER_ID, author_key)
-    if author_data:
-        return render_template(
-            "poems_author_list.html",
-            author_slug=author_key,
-            author_data=author_data[author_key],
-        )
+    user_id = MAIN_USER_ID
+    if is_authorized(user_id):
+        author_data = get_poems_by_author(user_id, author_key)
+        if author_data:
+            return render_template(
+                "poems_author_list.html", author_slug=author_key,
+                author_data=author_data[author_key], app_name=APP_NAME
+            )
+    return not_found_poem()
+
+
+@app.route("/id/<user_id>/<author_key>", strict_slashes=False)
+def view_author_poems_others(user_id, author_key):
+    """
+    View all poems by a specific author.
+    """
+    if is_authorized(user_id):
+        author_data = get_poems_by_author(user_id, author_key)
+        if author_data:
+            return render_template(
+                "poems_author_list.html", author_slug=author_key,
+                author_data=author_data[author_key], app_name=APP_NAME
+            )
     return not_found_poem()
 
 
@@ -104,15 +143,34 @@ def view_poem(author_key, title_key):
     """
     View a specific poem by author and title.
     """
-    poem = get_poem(ALLOWED_USER_ID, author_key, title_key)
-    if poem:
-        poem_html = markdown_to_html(poem["poem"])
-        return render_template("poem.html", author=poem["author"], title=poem["title"], poem=poem_html)
+    user_id = MAIN_USER_ID
+    if is_authorized(user_id):
+        poem = get_poem(user_id, author_key, title_key)
+        if poem:
+            poem_html = markdown_to_html(poem["poem"])
+            return render_template("poem.html", author=poem["author"],
+                                   title=poem["title"], poem=poem_html,
+                                   app_name=APP_NAME)
     return not_found_poem()
 
 
+@app.route("/id/<user_id>/<author_key>/<title_key>", strict_slashes=False)
+def view_poem_others(user_id, author_key, title_key):
+    """
+    View a specific poem by author and title.
+    """
+    if is_authorized(user_id):
+        poem = get_poem(user_id, author_key, title_key)
+        if poem:
+            poem_html = markdown_to_html(poem["poem"])
+            return render_template("poem.html", author=poem["author"],
+                                   title=poem["title"], poem=poem_html,
+                                   app_name=APP_NAME)
+        return not_found_poem()
+
+
 @app.errorhandler(404)
-def page_not_found(e):
+def page_not_found(_):
     """
     Custom 404 error handler to display the 'No, no, no' poem template.
     """
@@ -120,7 +178,7 @@ def page_not_found(e):
 
 
 @app.errorhandler(500)
-def internal_server_error(e):
+def internal_server_error(_):
     """
     Custom 500 error handler to display the 'No, no, no' poem template.
     """
@@ -151,7 +209,7 @@ def api_upload_poem():
     try:
         poem_url = upload_to_db(data)
     except Exception as e:
-        logger.error(f"Error uploading poem: {e}", exc_info=True)
+        logger.error("Error uploading poem: %s", e, exc_info=True)
         return jsonify({"error": "Failed to upload poem"}), 500
 
     return jsonify({"status": "success", "poem_url": poem_url}), 201
@@ -179,7 +237,7 @@ def api_delete_poem():
     try:
         delete_poem_db(user_id, data["author"], data["title"])
     except Exception as e:
-        logger.error(f"Error deleting poem: {e}", exc_info=True)
+        logger.error("Error deleting poem: %s", e, exc_info=True)
         return jsonify({"error": "Failed to delete poem"}), 500
 
     return jsonify({"status": "success"}), 200
@@ -207,7 +265,7 @@ def api_delete_author():
     try:
         delete_author_db(user_id, data["author"])
     except Exception as e:
-        logger.error(f"Error deleting author: {e}", exc_info=True)
+        logger.error("Error deleting author: %s", e, exc_info=True)
         return jsonify({"error": "Failed to delete author"}), 500
 
     return jsonify({"status": "success"}), 200
@@ -235,7 +293,7 @@ def api_delete_all():
     try:
         delete_user_db(user_id)
     except Exception as e:
-        logger.error(f"Error deleting all poems: {e}", exc_info=True)
+        logger.error("Error deleting all poems: %s", e, exc_info=True)
         return jsonify({"error": "Failed to delete poems"}), 500
 
     return jsonify({"status": "success"}), 200

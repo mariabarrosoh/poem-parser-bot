@@ -11,14 +11,13 @@ This project enables you to extract structured poem information—such as the ti
 
 ## 🚀 Features
 
-### Telegram Bot (main.py)
+### Telegram Bot (bot/main.py)
 - Command-based interface to manage poems directly from Telegram.
 - Commands to upload images, edit title, poem content, and author.
 - Save poems to the database.
 - Delete poems, authors, or all poems.
-- Key commands include `/start`, `/done`, `/edittitle`, `/editpoem`, `/editauthor`, `/save`, `/deletepoem`, `/deleteauthor`, `/deleteall`, `/reset`, and `/help`.
 
-### Flask Application (app.py)
+### Flask Application (api/app.py)
 - Provides web HTML views to display saved poems by author and title.
 - Allows browsing all poems by a user, by author, or viewing a specific poem.
 - Offers REST API endpoints to save poems, delete poems, delete authors, or delete all poems for a user.
@@ -33,10 +32,6 @@ This project enables you to extract structured poem information—such as the ti
 3. Click "Create API Key".
 4. Copy the token (starts with gsk_...) and paste it into .env as GROQ_API_KEY.
 
-```env
-GROQ_API_KEY=your_groq_api_key
-MODEL_NAME=meta-llama/llama-4-scout-17b-16e-instruct  # Or your preferred model
-```
 
 💡 You can use any of the supported models.
 
@@ -44,11 +39,7 @@ MODEL_NAME=meta-llama/llama-4-scout-17b-16e-instruct  # Or your preferred model
 1. Open [@BotFather](https://t.me/BotFather) on Telegram.
 2. Run the `/newbot` command and follow the steps.
 3. Copy the token you receive.
-4. Add it to your `.env` as:
-
-```env
-TELEGRAM_BOT_TOKEN=your_telegram_bot_token
-```
+4. Add it to your `.env` and paste it into .env as TELEGRAM_BOT_TOKEN.
 
 
 ## 🛠️ Local Setup
@@ -61,7 +52,7 @@ cd poem-parser-bot
 ```
 
 ### 2. Install Dependencies
-This project requires **Python 3.12.0** to ensure compatibility.
+This project requires **Python 3.10.18** to ensure compatibility.
 We recommend using a virtual environment:
 ```bash
 python3 -m venv venv
@@ -72,34 +63,43 @@ pip install -r requirements.txt
 ### 3. Create a .env File
 Edit the .env file with your credentials:
 ```bash
-TELEGRAM_BOT_TOKEN=your_telegram_bot_token              # Telegram bot token from @BotFather
-GROQ_API_KEY=your_groq_api_key                          # API key for the Groq service
-MODEL_NAME=meta-llama/llama-4-scout-17b-16e-instruct    # Or your preferred model name
-DATA_DIR=data                                           # Directory for temporary user image and output files
-DATABASE_URL=your_db_url                                # Posgresql DB url from render
-TEMP_DIR=temp                                           # Temporary directory for intermediate files
-MAX_IMAGES=5                                            # Maximum number of images allowed per upload
-POEM_DOMAIN=http://localhost:8080                       # Poem Domain for local, render api domain for production
-ALLOWED_USER_ID=your_user_telegram_id                   # Comma-separated Telegram user IDs authorized to use the app (e.g., 123456789,987654321)
+# app environent variables
+APP_NAME=your_app_name
 PYTHON_VERSION=3.10.18
+ALLOWED_USER_ID=your_users_id_separated_by_commas
+MAIN_USER_ID=your_main_id
+DATABASE_URL=your_db_url
+
+
+# bot environent variables
+BOT_NAME=your_bot_name
+PYTHON_VERSION=3.10.18
+ALLOWED_USER_ID=our_users_id_separated_by_commas
+MODEL_NAME=meta-llama/llama-4-scout-17b-16e-instruct
+GROQ_API_KEY=your_groq_api_key
+TELEGRAM_BOT_TOKEN=your_bot_token
+MAX_IMAGES=10
+TEMP_DIR=temp
+API_DOMAIN=your_api_domain
+
 ```
 
 ## 🤖 Run the Telegram Bot in local
 ```bash
-python main.py
+python bot.main.py
 ```
 
-Open Telegram and talk to your bot. Try sending 1–3 poem images, then use /done to receive the HTML.
+Open Telegram and talk to your bot.
 
 ## 🌐 Run the API in local
 Start the Flask app with Gunicorn:
 ```
-gunicorn app:app --bind 0.0.0.0:8080
+gunicorn api.app:app --bind 0.0.0.0:8080
 ```
 
 Or for development/testing:
 ```
-python app.py
+python api.app.py
 ```
 
 The API will be available at:
@@ -109,23 +109,31 @@ http://localhost:8080/
 ## 📁 Project Structure
 
 ```bash
-poem-parser-bot/
-├── main.py               # Telegram bot entry point
-├── app.py                # Flask API entry point
-├── process.py            # Core processing logic
-├── utils/
-│   ├── logging_config.py # Logs configuration
-│   ├── db_utils.py       # DB interaction logic
-│   ├── llm_utils.py      # LLM interaction logic
-│   └── utils.py          # Helper functions (image encoding, etc.)
-├── prompts/
-│   └── poem_extractor.txt
-├── temp/                 # Temporary user image and output files
-├── db/                   # DB with user poems
-├── templates/            # API templates
-├── .env                  # Secrets (not committed)
-├── .gitignore
-└── requirements.txt
+poem-parser-bot
+├── api
+│ ├── app.py
+│ ├── requirements.txt
+│ ├── templates
+│ │ ├── poem.html
+│ │ ├── poems_author_list.html
+│ │ └── poems_list.html
+│ └── utils
+│ │ ├── db_utils.py
+│ │ ├── logging_config.py
+│ │ └── utils.py
+├── bot
+│ ├── main.py
+│ ├── msg.json
+│ ├── process.py
+│ ├── prompts
+│ │ └── poem_extractor.txt
+│ ├── requirements.txt
+│ └── utils
+│ │ ├── llm_utils.py
+│ │ ├── logging_config.py
+│ │ └──  utils.py
+├── LICENSE
+└── readme.md
 ```
 
 

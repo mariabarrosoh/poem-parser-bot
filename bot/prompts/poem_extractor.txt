@@ -10,6 +10,7 @@ Your task is to extract the following information and return it in **valid JSON*
   - Indentation and spacing
   - Visual hierarchy (headers, subheaders)
   - Alignment if possible (use indentation or > for quotes)
+  If the poem appears divided into several images, do not add line breaks when changing pages unless they are necessary to maintain the structure of the entire poem.
   If the images do not contain a poem, or there is no readable text, return an **empty string** `""`.
 
 The JSON should have the following structure:
