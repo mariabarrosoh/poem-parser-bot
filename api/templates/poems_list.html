@@ -20,7 +20,7 @@
     }
 
     .author {
-      font-size: 1.5rem;
+      font-size: 1.3rem;
       font-weight: normal;
       margin: 0.5em 0;
       border-bottom: 1px solid #ccc;
@@ -55,9 +55,9 @@
 
   <div class="poem-section">
     {% for author_slug, author_data in poems_data.items() %}
-      <h3 class="author" data-target="list-{{ loop.index }}">
+      <h2 class="author" data-target="list-{{ loop.index }}">
         {{ author_data.author }}
-      </h3>
+      </h2>
       <ul class="poem-list" id="list-{{ loop.index }}">
         {% for poem_slug, poem_info in author_data.poems|dictsort %}
           <li>

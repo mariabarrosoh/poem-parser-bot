@@ -20,7 +20,7 @@
     }
 
     .poem-section h2 {
-      font-size: 1.5rem;
+      font-size: 1.3rem;
       font-weight: normal;
       margin-bottom: 0.5em;
       border-bottom: 1px solid #ccc;
@@ -47,19 +47,12 @@
       color: #000;
       border-bottom-color: #000;
     }
-
-    .poem-date {
-      font-style: italic;
-      font-size: 0.9rem;
-      color: #777;
-      margin-left: 0.5em;
-    }
   </style>
 </head>
 <body>
 
   <div class="poem-section">
-    <h3>{{ author_data.author }}</h3>
+    <h2>{{ author_data.author }}</h2>
     <ul class="poem-list">
       {% for poem_slug, poem_info in author_data.poems|dictsort %}
         <li>
