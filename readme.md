@@ -86,20 +86,23 @@ API_DOMAIN=your_api_domain
 
 ## 🤖 Run the Telegram Bot in local
 ```bash
-python bot.main.py
+cd bot
+python main.py
 ```
 
 Open Telegram and talk to your bot.
 
 ## 🌐 Run the API in local
 Start the Flask app with Gunicorn:
-```
-gunicorn api.app:app --bind 0.0.0.0:8080
+```bash
+cd api
+gunicorn app:app --bind 0.0.0.0:8080
 ```
 
 Or for development/testing:
-```
-python api.app.py
+```bash
+cd api
+python app.py
 ```
 
 The API will be available at:

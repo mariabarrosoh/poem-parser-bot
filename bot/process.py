@@ -7,8 +7,8 @@ using a combination of OCR and large language model (LLM) based tools.
 """
 
 from dotenv import load_dotenv
-from bot.utils.llm_utils import call_extractor
-from bot.utils.utils import encode_image_to_base64
+from utils.llm_utils import call_extractor
+from utils.utils import encode_image_to_base64
 
 
 load_dotenv()

@@ -27,9 +27,9 @@ from telegram.ext import (
     filters,
 )
 
-from bot.process import process_poem
-from bot.utils.logging_config import configure_logger
-from bot.utils.utils import escape_markdown
+from process import process_poem
+from utils.logging_config import configure_logger
+from utils.utils import escape_markdown
 
 
 # Load environment variables from .env file

@@ -14,7 +14,7 @@ from flasgger import Swagger
 from apscheduler.schedulers.background import BackgroundScheduler
 import requests
 
-from api.utils.db_utils import (
+from utils.db_utils import (
     init_db,
     upload_to_db,
     get_poem,
@@ -24,8 +24,8 @@ from api.utils.db_utils import (
     delete_author_db,
     delete_user_db,
 )
-from api.utils.utils import markdown_to_html
-from api.utils.logging_config import configure_logger
+from utils.utils import markdown_to_html
+from utils.logging_config import configure_logger
 
 
 # --- Load Environment Variables ---
