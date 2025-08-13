@@ -4,8 +4,8 @@
         "es": "¡Ups! No tienes permiso para usarme 😅"
     },
     "start_incompleted": {
-        "en": "Hi there 👋! To get started, please provide the name of the poem's author. It could be 'Unknown', 'Anonymous', 'Desconocido' or 'Anónimo'. Type: /start Author",
-        "es": "¡Hola 👋! Para empezar, indícame el nombre del autor del poema que quieres procesar. Puede ser 'Desconocido', 'Anónimo', 'Unknown' o 'Anonymous'. Escribe: /start Autor"
+        "en": "Hi there 👋!\n\nTo get started, please provide the poem's author you want to process. It could be 'Unknown', 'Anonymous', 'Desconocido' or 'Anónimo'. Type: /start Author",
+        "es": "Hola 👋\n\n Para empezar, indícame el autor del poema que quieres procesar. Puede ser 'Desconocido', 'Anónimo', 'Unknown' o 'Anonymous'. Escribe: /start Autor"
     },
     "start_ok": {
         "en": "Great! Author set to *{author}*.\nYou can change it anytime with /editauthor.\n\nNow, send me the poem images. When done, type /process.",
@@ -16,8 +16,8 @@
         "es": "Mmm, no veo ninguna imagen todavía. Envíame al menos una antes de escribir /process."
     },
     "process_imageerror": {
-        "en": "I couldn’t find any valid images 😕 Only JPG, JPEG, or PNG work.",
-        "es": "No pude encontrar ninguna imagen válida 😕 Solo acepto JPG, JPEG o PNG."
+        "en": "I couldn’t find any valid images 😕. Make sure you’ve uploaded at least one image in JPG, JPEG, or PNG format.",
+        "es": "No pude encontrar ninguna imagen válida 😕. Asegúrate de haber subido al menos una imagen en formato JPG, JPEG o PNG."
     },
     "process_author": {
         "en": "*Author:* {author}",
@@ -136,7 +136,7 @@
         "es": "¡Has llegado al máximo de {max_images} imágenes! Escribe /process para continuar."
     },
     "image_ok": {
-        "en": "Got it! Image received ✅ Send more or /process when ready.",
-        "es": "Imagen recibida ✅ Envía más o escribe /process cuando estés listo."
+        "en": "Image received ✅ You can send more images or type /process when you’re ready to process the poem.",
+        "es": "Imagen recibida ✅ Puedes enviar más imágenes o escribir /process cuando estés listo para procesar el poema."
     }
 }

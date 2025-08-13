@@ -730,9 +730,7 @@ async def handle_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
             get_message("image_limit", lang=user_lang))
         return
 
-    await update.message.reply_text(
-        "Image received and uploaded.\n"
-        "You can send more images, or use /process when you're ready.")
+    await update.message.reply_text(get_message("image_ok", lang=user_lang))
     logger.info("%s | %s | Image uploaded at %s",
                 user_id, request_id, final_path)
 
