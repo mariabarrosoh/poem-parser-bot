@@ -450,7 +450,7 @@ def ping():
 # --- Configure the scheduler ---
 
 scheduler = BackgroundScheduler()
-scheduler.add_job(keep_alive, 'interval', hours=1)  # Every hour
+scheduler.add_job(keep_alive, 'interval', minutes=10)
 scheduler.start()
 
 # --- Main Entry Point ---
