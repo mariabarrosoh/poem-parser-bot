@@ -4,8 +4,8 @@
         "es": "¡Ups! No tienes permiso para usarme 😅"
     },
     "start_incompleted": {
-        "en": "Hi there 👋!\n\nTo get started, please provide the poem's author you want to process. It could be 'Unknown', 'Anonymous', 'Desconocido' or 'Anónimo'. Type: /start Author",
-        "es": "Hola 👋\n\nPara empezar, indícame el autor del poema que quieres procesar. Puede ser 'Desconocido', 'Anónimo', 'Unknown' o 'Anonymous'. Escribe: /start Autor"
+        "en": "Hi there 👋!\nTo get started, please provide the poem's author you want to process. It could be 'Unknown', 'Anonymous', 'Desconocido' or 'Anónimo'.\nType: /start Author",
+        "es": "Hola 👋\nPara empezar, indícame el autor del poema que quieres procesar. Puede ser 'Desconocido', 'Anónimo', 'Unknown' o 'Anonymous'.\nEscribe: /start Autor"
     },
     "start_ok": {
         "en": "Great! Author set to *{author}*.\nYou can change it anytime with /editauthor.\n\nNow, send me the poem images. When done, type /process.",
