@@ -4,12 +4,12 @@
         "es": "¡Ups! No tienes permiso para usarme 😅"
     },
     "start_incompleted": {
-        "en": "Hi there 👋!\nTo get started, please provide the poem's author you want to process. It could be 'Unknown', 'Anonymous', 'Desconocido' or 'Anónimo'.\nType: /start Author",
-        "es": "Hola 👋\nPara empezar, indícame el autor del poema que quieres procesar. Puede ser 'Desconocido', 'Anónimo', 'Unknown' o 'Anonymous'.\nEscribe: /start Autor"
+        "en": "To get started, please provide the poem's author you want to process. It could be 'Unknown', 'Anonymous', 'Desconocido' or 'Anónimo'.\nType: /start Author",
+        "es": "Para empezar, indícame el autor del poema que quieres procesar. Puede ser 'Desconocido', 'Anónimo', 'Unknown' o 'Anonymous'.\nEscribe: /start Autor"
     },
     "start_ok": {
-        "en": "Great! Author set to *{author}*.\nYou can change it anytime with /editauthor.\n\nNow, send me the poem images. When done, type /process.",
-        "es": "¡Genial! Autor establecido: *{author}*.\nPuedes cambiarlo cuando quieras con /editauthor.\n\nAhora, envíame las imágenes del poema. Cuando termines, escribe /process."
+        "en": "Author set to *{author}*.\nYou can change it anytime with /editauthor.\n\nNow, send me the poem images. When done, type /process.",
+        "es": "Autor establecido *{author}*.\nPuedes cambiarlo cuando quieras con /editauthor.\n\nAhora, envíame las imágenes del poema. Cuando termines, escribe /process."
     },
     "process_noimage": {
         "en": "Hmm, I don’t see any images yet. Send me at least one before using /process.",
@@ -41,31 +41,31 @@
     },
     "nosession": {
         "en": "No session found 😅 Type /start to kick things off.",
-        "es": "No hay ninguna sesión activa 😅 Usa /start para empezar."
+        "es": "No hay ninguna sesión activa 😅 Escribe /start para empezar."
     },
     "edittitle_incompleted": {
         "en": "Sorry but I need the new title. Type: /edittitle New Title",
         "es": "Necesito el nuevo título. Escribe: /edittitle Nuevo título"
     },
     "edittitle_ok": {
-        "en": "Title updated! *{title}*\nCheck the rest of the information with /getinfo or type /upload to upload the poem to the website.",
-        "es": "¡Título actualizado! *{title}*\nRevisa el resto de la información con /getinfo o escribe /upload para subir el poema la web."
+        "en": "Title updated: *{title}*\nCheck the rest of the information with /getinfo or type /upload to upload the poem to the website.",
+        "es": "Título actualizado: *{title}*\nRevisa el resto de la información con /getinfo o escribe /upload para subir el poema la web."
     },
     "editpoem_incompleted": {
         "en": "Please send the new poem text: /editpoem New text",
         "es": "Envíame el nuevo texto del poema: /editpoem Nuevo texto"
     },
     "editpoem_ok": {
-        "en": "Poem updated successfully! Type /getinfo to see it or /upload to share.",
-        "es": "¡Poema actualizado! Usa /getinfo para verlo o /upload para subirlo a la web."
+        "en": "Poem updated successfully. Type /getinfo to see it or /upload to share.",
+        "es": "Poema actualizado. Escribe /getinfo para verlo o /upload para subirlo a la web."
     },
     "editauthor_incompleted": {
         "en": "Who’s the new author? Type: /editauthor New Author",
         "es": "¿Quién es el nuevo autor? Escribe: /editauthor Nuevo autor"
     },
     "editauthor_ok": {
-        "en": "Author updated to *{author}* ✅\nCheck the rest of the information with /getinfo or type /upload to upload the poem to the website.",
-        "es": "Autor actualizado a *{author}* ✅\nRevisa el resto de la información con /getinfo o escribe /upload para subir el poema la web."
+        "en": "Author updated to *{author}*\nCheck the rest of the information with /getinfo or type /upload to upload the poem to the website.",
+        "es": "Autor actualizado a *{author}*\nRevisa el resto de la información con /getinfo o escribe /upload para subir el poema la web."
     },
     "deleteall_ok": {
         "en": "All poems deleted successfully ✅",
@@ -77,7 +77,7 @@
     },
     "deleteauthor_incompleted": {
         "en": "Which author’s poems should I delete? Type: /deleteauthor Name",
-        "es": "¿De qué autor quieres eliminar los poemas? Usa: /deleteauthor Nombre"
+        "es": "¿De qué autor quieres eliminar los poemas? Escribe: /deleteauthor Nombre"
     },
     "deleteauthor_ok": {
         "en": "All poems by this author have been deleted ✅",
@@ -92,8 +92,8 @@
         "es": "Necesito el título y el autor del poema: /deletepoem Título & Autor"
     },
     "deletepoem_format": {
-        "en": "Wrong format! Type: /deletepoem Title & Author",
-        "es": "Formato incorrecto! Escribe: /deletepoem Título & Autor"
+        "en": "Wrong format. Type: /deletepoem Title & Author",
+        "es": "Formato incorrecto. Escribe: /deletepoem Título & Autor"
     },
     "deletepoem_ok": {
         "en": "Poem deleted ✅",
@@ -104,8 +104,8 @@
         "es": "No pude eliminar el poema 😕 Inténtalo más tarde."
     },
     "upload_incompleted": {
-        "en": "Missing info! Make sure author, title, and poem text are ready before uploading.",
-        "es": "¡Faltan datos! Asegúrate de que el autor, el título y el poema estén listos antes de subirlos."
+        "en": "Missing info. Make sure author, title, and poem text are ready before uploading.",
+        "es": "Faltan datos. Asegúrate de que el autor, el título y el poema estén listos antes de subirlos."
     },
     "upload_ok": {
         "en": "Poem uploaded successfully ✅\nSee it here: {poem_url}",
@@ -116,8 +116,8 @@
         "es": "¡Ups! No se pudo subir 😕 Inténtalo más tarde."
     },
     "reset": {
-        "en": "Session reset! Start a new one with /start",
-        "es": "Sesión reiniciada! Comienza una nueva con /start"
+        "en": "Session reset. Start a new one with /start",
+        "es": "Sesión reiniciada. Comienza una nueva con /start"
     },
     "help": {
         "en": "Available commands:\n/start <author> - Start a new session\n/process - Extract poem title and text from uploaded images\n/edittitle <title> - Change poem title\n/editpoem <text> - Change poem text\n/editauthor <author> - Change poem author\n/upload - Upload the poem information to the website\n/getinfo - Show information of the processed poem\n/deleteall - Delete all poems uploaded by the user\n/deleteauthor <author> - Delete all poems by a specific author uploaded by the user\n/deletepoem <title> & <author> - Delete a specific poem uploaded by the user\n/reset - Reset current session\n/help - Show this help message",
@@ -132,8 +132,8 @@
         "es": "Imagen no compatible 😕 Envía JPG o PNG."
     },
     "image_limit": {
-        "en": "Maximum of {max_images} images allowed! Type /process to continue.",
-        "es": "¡Has llegado al máximo de {max_images} imágenes! Escribe /process para continuar."
+        "en": "Maximum of {max_images} images allowed. Type /process to continue.",
+        "es": "Has llegado al máximo de {max_images} imágenes. Escribe /process para continuar."
     },
     "image_ok": {
         "en": "Image received ✅ You can send more images or type /process when you’re ready to process the poem.",
