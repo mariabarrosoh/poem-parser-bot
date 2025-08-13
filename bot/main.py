@@ -250,15 +250,18 @@ async def process(update: Update, context: ContextTypes.DEFAULT_TYPE):
             result.get("poem_text")) or "Empty"
 
         await update.message.reply_text(
-            get_message("process_author", lang=user_lang, author=user_data[user_id]['author']),
+            get_message("process_author",
+                        lang=user_lang, author=user_data[user_id]['author']),
             parse_mode="Markdown")
 
         await update.message.reply_text(
-            get_message("process_title", lang=user_lang, title=user_data[user_id]['title']),
+            get_message("process_title",
+                        lang=user_lang, title=user_data[user_id]['title']),
             parse_mode="Markdown")
 
         await update.message.reply_text(
-            get_message("process_poem", lang=user_lang, poem=user_data[user_id]['text']),
+            get_message("process_poem",
+                        lang=user_lang, poem=user_data[user_id]['text']),
             parse_mode="Markdown")
 
         await update.message.reply_text(
@@ -773,7 +776,7 @@ def home():
     Returns:
         str: Message confirming the bot is operational.
     """
-    return "Bot running"
+    return "Bot is running 🚀"
 
 
 def run_webserver():

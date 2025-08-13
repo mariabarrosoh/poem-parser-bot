@@ -5,9 +5,14 @@ Provides web views and API endpoints to upload, view, and delete poems.
 """
 
 import os
+import threading
+
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
+from flasgger import Swagger
+from apscheduler.schedulers.background import BackgroundScheduler
+import requests
 
 from api.utils.db_utils import (
     init_db,
@@ -29,9 +34,10 @@ load_dotenv()
 ALLOWED_USER_ID = os.getenv("ALLOWED_USER_ID")
 MAIN_USER_ID = os.getenv("MAIN_USER_ID")
 APP_NAME = os.getenv("APP_NAME")
+API_DOMAIN = os.getenv("API_DOMAIN")
 
 if not ALLOWED_USER_ID or not APP_NAME or not MAIN_USER_ID:
-    raise RuntimeError("ALLOWED_USER_ID or APP_NAME or MAIN_USER_ID  "
+    raise RuntimeError("ALLOWED_USER_ID, APP_NAME, MAIN_USER_ID or API_DOMAIN "
                        "environment variable is not set.")
 
 ALLOWED_USERS = {user_id.strip() for user_id in ALLOWED_USER_ID.split(",")}
@@ -44,10 +50,31 @@ init_db()
 # --- Flask App Initialization ---
 app = Flask(__name__)
 CORS(app)  # Enable Cross-Origin Resource Sharing
+swagger = Swagger(app, template={
+    "swagger": "2.0",
+    "info": {
+        "title": f"{APP_NAME} API",
+        "description": "API for uploading, deleting, and managing poems.",
+        "version": "1.0.0"
+    }
+})
 logger = configure_logger(APP_NAME)
 
 
 # --- Helper Functions ---
+
+def keep_alive():
+    """
+    Function that pings the /ping endpoint to keep the app awake.
+    """
+    try:
+        url = f"{API_DOMAIN}/ping"
+        logger.info("Pinging: %s", url)
+        requests.get(url, timeout=60)
+    except Exception as e:
+        logger.error("Ping error: %s", e, exc_info=True)
+
+
 def not_found_poem():
     """
     Render a default poem page when no poem or author is found.
@@ -185,13 +212,43 @@ def internal_server_error(_):
     return not_found_poem()
 
 
-# --- API Endpoints ---
+# --- API DB Endpoints ---
 
 @app.route("/api/upload_poem", methods=["POST"])
 def api_upload_poem():
     """
     Upload a poem to the database.
-    Expects JSON with: user_id, request_id, author, title, text.
+    ---
+    tags:
+      - Poems
+    consumes:
+      - application/json
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            user_id:
+              type: string
+            request_id:
+              type: string
+            author:
+              type: string
+            title:
+              type: string
+            text:
+              type: string
+    responses:
+      201:
+        description: Poem uploaded successfully
+      400:
+        description: Invalid request
+      401:
+        description: Unauthorized
+      500:
+        description: Server error
     """
     data = request.get_json()
     if not data:
@@ -219,7 +276,33 @@ def api_upload_poem():
 def api_delete_poem():
     """
     Delete a specific poem by user_id, author, and title.
-    Expects JSON with: user_id, author, title.
+    ---
+    tags:
+      - Poems
+    consumes:
+      - application/json
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            user_id:
+              type: string
+            author:
+              type: string
+            title:
+              type: string
+    responses:
+      200:
+        description: Poem deleted successfully
+      400:
+        description: Invalid request
+      401:
+        description: Unauthorized
+      500:
+        description: Server error
     """
     data = request.get_json()
     if not data:
@@ -247,7 +330,33 @@ def api_delete_poem():
 def api_delete_author():
     """
     Delete all poems by a specific author for a user.
-    Expects JSON with: user_id, author.
+    ---
+    tags:
+      - Poems
+    consumes:
+      - application/json
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            user_id:
+              type: string
+              example: "12345"
+            author:
+              type: string
+              example: "Emily Dickinson"
+    responses:
+      200:
+        description: All poems by the author deleted successfully
+      400:
+        description: Invalid request or missing fields
+      401:
+        description: Unauthorized
+      500:
+        description: Server error
     """
     data = request.get_json()
     if not data:
@@ -275,7 +384,30 @@ def api_delete_author():
 def api_delete_all():
     """
     Delete all poems for a user.
-    Expects JSON with: user_id.
+    ---
+    tags:
+      - Poems
+    consumes:
+      - application/json
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            user_id:
+              type: string
+              example: "12345"
+    responses:
+      200:
+        description: All poems deleted successfully
+      400:
+        description: Invalid request or missing fields
+      401:
+        description: Unauthorized
+      500:
+        description: Server error
     """
     data = request.get_json()
     if not data:
@@ -300,14 +432,34 @@ def api_delete_all():
 
 
 # --- Health Check Endpoint ---
+
 @app.route("/ping", methods=["GET"])
 def ping():
     """
     Health check endpoint.
+    ---
+    tags:
+      - Health
+    responses:
+      200:
+        description: App is running
     """
-    return jsonify(status="ok"), 200
+    return "App is running 🚀"
 
+
+# --- Configure the scheduler ---
+
+scheduler = BackgroundScheduler()
+scheduler.add_job(keep_alive, 'interval', hours=1)  # Every hour
+scheduler.start()
 
 # --- Main Entry Point ---
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080, debug=False)
+
+    # Ping immediately on startup in a separate thread
+    threading.Thread(target=keep_alive, daemon=True).start()
+
+    try:
+        app.run(host="0.0.0.0", port=8080, debug=False)
+    except (KeyboardInterrupt, SystemExit):
+        scheduler.shutdown()

@@ -21,11 +21,11 @@ def get_db_cursor():
     """
     Context manager to get a PostgreSQL cursor with automatic commit/rollback.
     """
-    DATABASE_URL = os.getenv("DATABASE_URL")
-    if not DATABASE_URL:
+    database_url = os.getenv("DATABASE_URL")
+    if not database_url:
         raise RuntimeError("DATABASE_URL is not set in environment variables.")
 
-    conn = psycopg2.connect(DATABASE_URL)
+    conn = psycopg2.connect(database_url)
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             yield cur
@@ -141,8 +141,8 @@ def upload_to_db(poem_dict: dict) -> str:
         str: The generated poem URL slug (author_slug/title_slug).
     """
 
-    MAIN_USER_ID = os.getenv("MAIN_USER_ID")
-    if not MAIN_USER_ID:
+    main_user_id = os.getenv("MAIN_USER_ID")
+    if not main_user_id:
         raise RuntimeError("MAIN_USER_ID is not set in environment variables.")
 
     user_id = str(poem_dict.get("user_id"))
@@ -159,7 +159,7 @@ def upload_to_db(poem_dict: dict) -> str:
 
     title_slug = slugify(title)
     author_slug = slugify(author)
-    if user_id == MAIN_USER_ID:
+    if user_id == main_user_id:
         poem_url = f"{author_slug}/{title_slug}"
     else:
         poem_url = f"id/{user_id}/{author_slug}/{title_slug}"
@@ -168,20 +168,27 @@ def upload_to_db(poem_dict: dict) -> str:
 
     with get_db_cursor() as cur:
         cur.execute(
-        (
-            "INSERT INTO poems (author_id, title_slug, title, poem, poem_url, "
-            "request_id, upload_at) "
-            "VALUES (%s, %s, %s, %s, %s, %s, %s)"
-            "ON CONFLICT (author_id, title_slug) DO UPDATE SET "
-            "title = EXCLUDED.title, "
-            "poem = EXCLUDED.poem, "
-            "poem_url = EXCLUDED.poem_url, "
-            "request_id = EXCLUDED.request_id, "
-            "upload_at = EXCLUDED.upload_at"
-        ),
-        (author_db_id, title_slug, title, text, poem_url, request_id,
-         upload_at)
-    )
+            (
+                "INSERT INTO poems (author_id, title_slug, title, poem, "
+                "poem_url, request_id, upload_at) "
+                "VALUES (%s, %s, %s, %s, %s, %s, %s) "
+                "ON CONFLICT (author_id, title_slug) DO UPDATE SET "
+                "title = EXCLUDED.title, "
+                "poem = EXCLUDED.poem, "
+                "poem_url = EXCLUDED.poem_url, "
+                "request_id = EXCLUDED.request_id, "
+                "upload_at = EXCLUDED.upload_at"
+            ),
+            (
+                author_db_id,
+                title_slug,
+                title,
+                text,
+                poem_url,
+                request_id,
+                upload_at
+            )
+        )
 
     return poem_url
 
@@ -282,7 +289,6 @@ def get_poems_by_author(user_id: str, author_slug: str) -> dict | None:
                 }
             }
         }
-
 
 
 def get_poem(user_id: str, author_slug: str, title_slug: str) -> dict | None:
