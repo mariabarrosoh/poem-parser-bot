@@ -81,7 +81,7 @@ TELEGRAM_BOT_TOKEN=your_bot_token
 MAX_IMAGES=10
 TEMP_DIR=temp
 API_DOMAIN=your_api_domain
-
+BOT_DOMAIN=your_bot_domain
 ```
 
 ## 🤖 Run the Telegram Bot in local

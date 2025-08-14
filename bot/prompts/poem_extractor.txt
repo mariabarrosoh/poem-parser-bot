@@ -4,13 +4,13 @@ You will receive **multiple images** of **a single poem**, possibly split across
 Your task is to extract the following information and return it in **valid JSON** format:
 
 - "title": The title of the poem (typically the first heading or most visually prominent text). If there is no clear title, return an **empty string** `""`.
-- "markdown": A Markdown V2 version of the entire poem (without title) that preserves:
+- "markdown": A **Markdown** version of the entire poem (without title) that **faithfully preserves**:
   - Paragraphs and line breaks
   - Italics and bold formatting
-  - Indentation and spacing
+  - Indentation and spacing, including **forced spaces** (use &nbsp; or multiple spaces in Markdown where they appear in the poem)
   - Visual hierarchy (headers, subheaders)
   - Alignment if possible (use indentation or > for quotes)
-  If the poem appears divided into several images, do not add line breaks when changing pages unless they are necessary to maintain the structure of the entire poem.
+  If the poem appears divided into several images, **do not** add line breaks when changing pages unless they are necessary to maintain the structure of the entire poem.
   If the images do not contain a poem, or there is no readable text, return an **empty string** `""`.
 
 The JSON should have the following structure:
@@ -20,6 +20,6 @@ The JSON should have the following structure:
   "markdown": "..."
 }
 
-Only return valid JSON. Do not include explanations or any other text.
+**Only** return valid JSON. Do not include explanations or any other text.
 
 The JSON should start below:

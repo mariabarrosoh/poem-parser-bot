@@ -8,8 +8,8 @@
         "es": "Para empezar, indícame el autor del poema que quieres procesar. Puede ser 'Desconocido', 'Anónimo', 'Unknown' o 'Anonymous'.\nEscribe: /start Autor"
     },
     "start_ok": {
-        "en": "Author set to *{author}*.\nYou can change it anytime with /editauthor.\n\nNow, send me the poem images. When done, type /process.",
-        "es": "Autor establecido *{author}*.\nPuedes cambiarlo cuando quieras con /editauthor.\n\nAhora, envíame las imágenes del poema. Cuando termines, escribe /process."
+        "en": "Author set to *{author}*\nYou can change it anytime with /editauthor.\n\nNow, send me the poem images. When done, type /process.",
+        "es": "Autor establecido *{author}*\nPuedes cambiarlo cuando quieras con /editauthor.\n\nAhora, envíame las imágenes del poema. Cuando termines, escribe /process."
     },
     "process_noimage": {
         "en": "Hmm, I don’t see any images yet. Send me at least one before using /process.",
@@ -138,5 +138,9 @@
     "image_ok": {
         "en": "Image received ✅ You can send more images or type /process when you’re ready to process the poem.",
         "es": "Imagen recibida ✅ Puedes enviar más imágenes o escribir /process cuando estés listo para procesar el poema."
+    },
+    "error": {
+        "en": "Oops! Something went wrong 😕 Try again later.",
+        "es": "¡Ups! Algo salió mal 😕 Inténtalo más tarde."
     }
 }

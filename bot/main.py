@@ -16,6 +16,8 @@ import json
 
 from flask import Flask
 from flask_cors import CORS
+from apscheduler.schedulers.background import BackgroundScheduler
+import requests
 import aiohttp
 from dotenv import load_dotenv
 from telegram import Update, BotCommand
@@ -29,7 +31,6 @@ from telegram.ext import (
 
 from process import process_poem
 from utils.logging_config import configure_logger
-from utils.utils import escape_markdown
 
 
 # Load environment variables from .env file
@@ -45,15 +46,16 @@ MAX_IMAGES: int = int(os.getenv("MAX_IMAGES"))
 ALLOWED_USER_ID: str = os.getenv("ALLOWED_USER_ID")
 API_DOMAIN: str = os.getenv("API_DOMAIN")
 BOT_NAME: str = os.getenv("BOT_NAME")
+BOT_DOMAIN: str = os.getenv("BOT_DOMAIN")
 
 
 if (
     not API_DOMAIN or not ALLOWED_USER_ID or not TEMP_DIR
-    or not MAX_IMAGES or not BOT_NAME
+    or not MAX_IMAGES or not BOT_NAME or not BOT_DOMAIN
 ):
     raise RuntimeError(
-        "API_DOMAIN, ALLOWED_USER_ID, TEMP_DIR, MAX_IMAGES or BOT_NAME "
-        "environment variables are not set."
+        "API_DOMAIN, ALLOWED_USER_ID, TEMP_DIR, MAX_IMAGES, BOT_NAME "
+        "or BOT_DOMAIN environment variables are not set."
     )
 
 # Configure logger for the bot
@@ -188,23 +190,27 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_lang = update.effective_user.language_code
     logger.info("%s | /start command invoked", user_id)
 
-    request_id = create_session(user_id)
+    try:
+        request_id = create_session(user_id)
 
-    author = escape_markdown(" ".join(context.args))
-    if not author:
-        logger.warning("%s | %s | No author provided in /start",
-                       user_id, request_id)
+        author = " ".join(context.args)
+        if not author:
+            logger.warning("%s | %s | No author provided in /start",
+                           user_id, request_id)
 
+            await update.message.reply_text(
+                get_message("start_incompleted", lang=user_lang)
+            )
+            return
+
+        user_data[user_id]["author"] = author
+        logger.info("%s | Author set to: %s", user_id, author)
         await update.message.reply_text(
-            get_message("start_incompleted", lang=user_lang)
-        )
-        return
-
-    user_data[user_id]["author"] = author
-    logger.info("%s | Author set to: %s", user_id, author)
-    await update.message.reply_text(
-        get_message("start_ok", lang=user_lang, author=author),
-        parse_mode="Markdown")
+            get_message("start_ok", lang=user_lang, author=author),
+            parse_mode="Markdown")
+    except Exception as e:
+        logger.error("%s | Error: %s", user_id, e, exc_info=True)
+        await update.message.reply_text(get_message("error", lang=user_lang))
 
 
 @restricted_command
@@ -244,10 +250,8 @@ async def process(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     try:
         result = process_poem(image_paths=image_paths)
-        user_data[user_id]["title"] = escape_markdown(
-            result.get("poem_title")) or "Untitled"
-        user_data[user_id]["text"] = escape_markdown(
-            result.get("poem_text")) or "Empty"
+        user_data[user_id]["title"] = result.get("poem_title") or "Untitled"
+        user_data[user_id]["text"] = result.get("poem_text") or "Empty"
 
         await update.message.reply_text(
             get_message("process_author",
@@ -288,33 +292,39 @@ async def getinfo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     request_id = user_sessions.get(user_id)
     logger.info("%s | /getinfo command invoked", user_id)
 
-    data = user_data.get(user_id)
-    if not data:
-        logger.info("%s | No active session found for /getinfo", user_id)
-        await update.message.reply_text(get_message("nosession",
-                                                    lang=user_lang))
-        return
+    try:
 
-    author = data.get("author")
-    title = data.get("title") or "Untitled"
-    text = data.get("text") or "Empty"
+        data = user_data.get(user_id)
+        if not data:
+            logger.info("%s | No active session found for /getinfo", user_id)
+            await update.message.reply_text(get_message("nosession",
+                                                        lang=user_lang))
+            return
 
-    await update.message.reply_text(
-        get_message("process_author", lang=user_lang, author=author),
-        parse_mode="Markdown")
+        author = data.get("author")
+        title = data.get("title") or "Untitled"
+        text = data.get("text") or "Empty"
 
-    await update.message.reply_text(
-        get_message("process_title", lang=user_lang, title=title),
-        parse_mode="Markdown")
+        await update.message.reply_text(
+            get_message("process_author", lang=user_lang, author=author),
+            parse_mode="Markdown")
 
-    await update.message.reply_text(
-        get_message("process_poem", lang=user_lang, poem=text),
-        parse_mode="Markdown")
+        await update.message.reply_text(
+            get_message("process_title", lang=user_lang, title=title),
+            parse_mode="Markdown")
 
-    await update.message.reply_text(
-        get_message("process_continue", lang=user_lang))
+        await update.message.reply_text(
+            get_message("process_poem", lang=user_lang, poem=text),
+            parse_mode="Markdown")
 
-    logger.info("%s | %s | Poem info displayed", user_id, request_id)
+        await update.message.reply_text(
+            get_message("process_continue", lang=user_lang))
+
+        logger.info("%s | %s | Poem info displayed", user_id, request_id)
+
+    except Exception as e:
+        logger.error("%s | Error: %s", user_id, e, exc_info=True)
+        await update.message.reply_text(get_message("error", lang=user_lang))
 
 
 @restricted_command
@@ -328,24 +338,28 @@ async def edittitle(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_lang = update.effective_user.language_code
     logger.info("%s | /edittitle command invoked", user_id)
 
-    request_id = user_sessions.get(user_id)
-    if not request_id:
-        request_id = create_session(user_id)
+    try:
+        request_id = user_sessions.get(user_id)
+        if not request_id:
+            request_id = create_session(user_id)
 
-    title = escape_markdown(" ".join(context.args))
-    if not title:
-        logger.warning("%s | %s | No title provided in /edittitle",
-                       user_id, request_id)
+        title = " ".join(context.args)
+        if not title:
+            logger.warning("%s | %s | No title provided in /edittitle",
+                           user_id, request_id)
+            await update.message.reply_text(
+                get_message("edittitle_incompleted", lang=user_lang))
+            return
+
+        user_data[user_id]["title"] = title
         await update.message.reply_text(
-            get_message("edittitle_incompleted", lang=user_lang))
-        return
-
-    user_data[user_id]["title"] = title
-    await update.message.reply_text(
-        get_message("edittitle_ok", lang=user_lang, title=title),
-        parse_mode="Markdown"
-    )
-    logger.info("%s | %s | Poem title updated", user_id, request_id)
+            get_message("edittitle_ok", lang=user_lang, title=title),
+            parse_mode="Markdown"
+        )
+        logger.info("%s | %s | Poem title updated", user_id, request_id)
+    except Exception as e:
+        logger.error("%s | Error: %s", user_id, e, exc_info=True)
+        await update.message.reply_text(get_message("error", lang=user_lang))
 
 
 @restricted_command
@@ -358,25 +372,28 @@ async def editpoem(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     user_lang = update.effective_user.language_code
     logger.info("%s | /editpoem command invoked", user_id)
+    try:
+        request_id = user_sessions.get(user_id)
+        if not request_id:
+            request_id = create_session(user_id)
 
-    request_id = user_sessions.get(user_id)
-    if not request_id:
-        request_id = create_session(user_id)
+        # Extract text after command
+        text = update.message.text.partition(" ")[2].strip()
+        if not text:
+            logger.warning("%s | %s | No poem text provided in /editpoem",
+                           user_id, request_id)
+            await update.message.reply_text(
+                get_message("editpoem_incompleted", lang=user_lang))
+            return
 
-    # Extract text after command
-    text = escape_markdown(update.message.text.partition(" ")[2].strip())
-    if not text:
-        logger.warning("%s | %s | No poem text provided in /editpoem",
-                       user_id, request_id)
+        user_data[user_id]["text"] = text
         await update.message.reply_text(
-            get_message("editpoem_incompleted", lang=user_lang))
-        return
-
-    user_data[user_id]["text"] = text
-    await update.message.reply_text(
-        get_message("editpoem_ok", lang=user_lang)
-    )
-    logger.info("%s | %s | Poem text updated", user_id, request_id)
+            get_message("editpoem_ok", lang=user_lang)
+        )
+        logger.info("%s | %s | Poem text updated", user_id, request_id)
+    except Exception as e:
+        logger.error("%s | Error: %s", user_id, e, exc_info=True)
+        await update.message.reply_text(get_message("error", lang=user_lang))
 
 
 @restricted_command
@@ -390,24 +407,28 @@ async def editauthor(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_lang = update.effective_user.language_code
     logger.info("%s | /editauthor command invoked", user_id)
 
-    request_id = user_sessions.get(user_id)
-    if not request_id:
-        request_id = create_session(user_id)
+    try:
+        request_id = user_sessions.get(user_id)
+        if not request_id:
+            request_id = create_session(user_id)
 
-    author = escape_markdown(" ".join(context.args).strip())
-    if not author:
-        logger.warning("%s | %s | No author name provided in /editauthor",
-                       user_id, request_id)
+        author = " ".join(context.args).strip()
+        if not author:
+            logger.warning("%s | %s | No author name provided in /editauthor",
+                           user_id, request_id)
+            await update.message.reply_text(
+                get_message("editauthor_incompleted", lang=user_lang))
+            return
+
+        user_data[user_id]["author"] = author
         await update.message.reply_text(
-            get_message("editauthor_incompleted", lang=user_lang))
-        return
-
-    user_data[user_id]["author"] = author
-    await update.message.reply_text(
-        get_message("editauthor_ok", lang=user_lang, author=author),
-        parse_mode="Markdown"
-    )
-    logger.info("%s | %s | Poem author updated", user_id, request_id)
+            get_message("editauthor_ok", lang=user_lang, author=author),
+            parse_mode="Markdown"
+        )
+        logger.info("%s | %s | Poem author updated", user_id, request_id)
+    except Exception as e:
+        logger.error("%s | Error: %s", user_id, e, exc_info=True)
+        await update.message.reply_text(get_message("error", lang=user_lang))
 
 
 @restricted_command
@@ -467,7 +488,7 @@ async def deleteauthor(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not request_id:
         request_id = create_session(user_id)
 
-    author = escape_markdown(" ".join(context.args).strip())
+    author = " ".join(context.args).strip()
     if not author:
         logger.warning("%s | %s | No author provided.", user_id, request_id)
         await update.message.reply_text(
@@ -787,11 +808,31 @@ def run_webserver():
     app.run(host="0.0.0.0", port=4000, debug=False)
 
 
+def keep_alive():
+    """
+    Function that pings the /ping endpoint to keep the app awake.
+    """
+    try:
+        url = f"{BOT_DOMAIN}/"
+        logger.info("Pinging: %s", url)
+        requests.get(url, timeout=60)
+    except Exception as e:
+        logger.error("Ping error: %s", e, exc_info=True)
+
+
+# --- Configure the scheduler ---
+
+scheduler = BackgroundScheduler()
+scheduler.add_job(keep_alive, 'interval', minutes=2)
+scheduler.start()
+
+
 # --- Entry point ---
 
 if __name__ == "__main__":
 
     threading.Thread(target=run_webserver, daemon=True).start()
+    threading.Thread(target=keep_alive, daemon=True).start()
 
     # Clean data dir
     cleanup_temp_dir()

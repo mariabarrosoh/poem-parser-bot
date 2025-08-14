@@ -3,7 +3,6 @@ Utility Functions Module
 """
 
 import base64
-import re
 
 
 def encode_image_to_base64(image_path: str) -> str:
@@ -34,17 +33,3 @@ def encode_image_to_base64(image_path: str) -> str:
     except Exception as e:
         raise RuntimeError(
             f"Failed to encode image: {e}") from e
-
-
-def escape_markdown(content: str) -> str:
-    """
-    Escape Markdown formatting characters in a string.
-
-    Args:
-        content (str): Text to escape.
-
-    Returns:
-        str: Cleaned text with Markdown characters escaped.
-    """
-    escape_chars = r'_*[]()~`>#+-=|{}!'
-    return re.sub(f'([{re.escape(escape_chars)}])', r'\\\1', content).strip()

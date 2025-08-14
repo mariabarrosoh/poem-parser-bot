@@ -84,7 +84,10 @@ def call_extractor(
         ]
 
         # Load prompt text from disk
-        prompt = load_prompt("prompts/poem_extractor.txt")
+        prompt_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "prompts/poem_extractor.txt")
+        prompt = load_prompt(prompt_path)
 
         client = Groq(api_key=api_key)
         response = client.chat.completions.create(
