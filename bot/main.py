@@ -823,7 +823,7 @@ def keep_alive():
 # --- Configure the scheduler ---
 
 scheduler = BackgroundScheduler()
-scheduler.add_job(keep_alive, 'interval', minutes=2)
+scheduler.add_job(keep_alive, 'interval', minutes=10)
 scheduler.start()
 
 
